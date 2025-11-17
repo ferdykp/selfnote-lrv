@@ -54,7 +54,7 @@
 
                     {{-- Editor (scrollable + responsive) --}}
                     <div id="editor" contenteditable="true"
-                        class="w-full p-3 border border-gray-300 rounded-lg min-h-[390px] max-h-[50vh] overflow-y-auto focus:outline-none focus:ring focus:ring-blue-200 bg-white break-words whitespace-pre-wrap text-gray-700">
+                        class="w-full p-3 border border-gray-300 rounded-lg min-h-[390px] max-h-[50vh] overflow-y-auto focus:outline-none focus:ring focus:ring-blue-200 bg-white break-words text-gray-700">
                     </div>
                     <textarea name="content" id="hiddenContent" hidden></textarea>
                 </div>

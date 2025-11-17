@@ -255,34 +255,35 @@
 
                 // Template HTML baru, sama dengan Blade
                 const noteHtml = `
-    <div class="relative p-4 transition bg-white shadow-md cursor-pointer note-card rounded-xl hover:shadow-lg"
-         data-id="${note.id}" data-timestamp="${timestamp}"
-         data-title="${note.title.toLowerCase()}" data-date="${cardDate.toISOString().split('T')[0]}">
+<div class="relative p-4 transition bg-white shadow-md cursor-pointer note-card rounded-xl hover:shadow-lg"
+     data-id="${note.id}" data-timestamp="${timestamp}"
+     data-title="${note.title.toLowerCase()}" data-date="${cardDate.toISOString().split('T')[0]}">
 
-         <form action="/content/${note.id}" method="POST" class="absolute z-10 top-3 right-3"
-               onsubmit="event.stopPropagation(); return confirm('Yakin ingin menghapus catatan ini?');">
-             @csrf
-             @method('DELETE')
-             <button type="submit"
-                 class="p-2 text-red-500 transition bg-white rounded-full shadow hover:bg-red-100 hover:text-red-600">
-                 <i class="fa-solid fa-trash"></i>
-             </button>
-         </form>
+     <form action="/content/${note.id}" method="POST" class="absolute z-10 bottom-3 right-3 delete-form">
+         @csrf
+         @method('DELETE')
+         <button type="button"
+             class="p-2 text-red-500 transition bg-white rounded-full shadow hover:bg-red-100 hover:text-red-600"
+             onclick="openConfirmModal(event, this)">
+             <i class="fa-solid fa-trash"></i>
+         </button>
+     </form>
 
-         ${note.image ? `<img src="/storage/${note.image}" class="object-cover w-full h-40 mb-3 rounded-lg">` : ''}
+     ${note.image ? `<img src="/storage/${note.image}" class="object-cover w-full h-40 mb-3 rounded-lg">` : ''}
 
-         <h2 class="text-lg font-semibold text-gray-800 break-words line-clamp-2">${note.title}</h2>
+     <h2 class="text-lg font-semibold text-gray-800 break-words line-clamp-2">${note.title}</h2>
 
-         <div class="relative mt-1 overflow-hidden text-sm text-gray-600 max-h-20 note-content">
-             ${note.content}
-             <div class="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-white to-transparent"></div>
-         </div>
+     <div class="relative mt-1 overflow-hidden text-sm text-gray-600 max-h-20 note-content">
+         ${note.content}
+         <div class="absolute bottom-0 left-0 w-full h-6 "></div>
+     </div>
 
-         <p class="mt-2 text-xs text-gray-400">
-            ${cardDate.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })},
-            ${cardDate.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}
-         </p>
-    </div>`;
+     <p class="mt-2 text-xs text-gray-400">
+        ${cardDate.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })},
+        ${cardDate.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}
+     </p>
+</div>`;
+
 
                 notesContainer.insertAdjacentHTML('afterbegin', noteHtml);
 

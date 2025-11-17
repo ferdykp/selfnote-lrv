@@ -13,11 +13,12 @@ return new class extends Migration
     {
         Schema::create('note_contents', function (Blueprint $table) {
             $table->id();
-            $table->timestamps();
             $table->string('title');
             $table->text('content');
             $table->string('images')->nullable();
             $table->date('date')->nullable();
+            $table->softDeletes(); // ← kolom 'deleted_at' untuk fitur soft delete
+            $table->timestamps();  // simpan created_at & updated_at
         });
     }
 

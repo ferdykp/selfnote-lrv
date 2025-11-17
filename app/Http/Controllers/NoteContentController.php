@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\NoteContent;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class NoteContentController extends Controller
 {
@@ -38,6 +39,8 @@ class NoteContentController extends Controller
     // ===== GET SINGLE NOTE =====
     public function show(NoteContent $content)
     {
+        // Render Markdown ke HTML saat ditampilkan via API
+        $content->content = Str::markdown($content->content);
         return response()->json($content);
     }
 
@@ -50,15 +53,20 @@ class NoteContentController extends Controller
             'image'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+        // Upload gambar jika ada
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('notes', 'public');
         }
 
         $validated['date'] = now()->toDateString();
 
+        // Simpan note ke database
         $note = NoteContent::create($validated);
 
-        // Jika AJAX, kembalikan JSON
+        // 🔥 Render Markdown ke HTML sebelum dikirim via AJAX
+        $note->content = Str::markdown($note->content);
+
+        // Jika AJAX, kembalikan JSON agar frontend langsung tampil bold, dll.
         if ($request->ajax()) {
             return response()->json($note);
         }
@@ -77,8 +85,8 @@ class NoteContentController extends Controller
             'image'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
         ]);
 
+        // Ganti gambar jika ada upload baru
         if ($request->hasFile('image')) {
-            // Hapus image lama
             if ($noteContent->image && Storage::disk('public')->exists($noteContent->image)) {
                 Storage::disk('public')->delete($noteContent->image);
             }
@@ -91,7 +99,9 @@ class NoteContentController extends Controller
 
         $noteContent->update($validated);
 
-        // Jika AJAX, kembalikan JSON
+        // 🔥 Render Markdown ke HTML sebelum dikirim via AJAX
+        $noteContent->content = Str::markdown($noteContent->content);
+
         if ($request->ajax()) {
             return response()->json($noteContent);
         }
@@ -99,22 +109,34 @@ class NoteContentController extends Controller
         return redirect()->route('content.index')->with('success', 'Note updated successfully!');
     }
 
-    // ===== DELETE NOTE =====
+    // ===== DELETE NOTE (Soft Delete) =====
     public function destroy($id)
     {
-        $noteContent = NoteContent::findOrFail($id);
+        $note = NoteContent::findOrFail($id);
+        $note->delete(); // Soft delete
+        return redirect()->back()->with('status', 'Catatan dipindahkan ke Sampah.');
+    }
 
-        if ($noteContent->image && Storage::disk('public')->exists($noteContent->image)) {
-            Storage::disk('public')->delete($noteContent->image);
-        }
+    // ===== TRASH VIEW =====
+    public function trash()
+    {
+        $notes = NoteContent::onlyTrashed()->get();
+        return view('content.trash', compact('notes'));
+    }
 
-        $noteContent->delete();
+    // ===== RESTORE NOTE =====
+    public function restore($id)
+    {
+        $note = NoteContent::onlyTrashed()->findOrFail($id);
+        $note->restore();
+        return redirect()->route('content.trash')->with('status', 'Catatan berhasil dipulihkan.');
+    }
 
-        // Jika AJAX, kembalikan JSON sukses
-        if (request()->ajax()) {
-            return response()->json(['success' => true]);
-        }
-
-        return redirect()->route('content.index')->with('success', 'Note deleted successfully!');
+    // ===== FORCE DELETE =====
+    public function forceDelete($id)
+    {
+        $note = NoteContent::onlyTrashed()->findOrFail($id);
+        $note->forceDelete();
+        return redirect()->route('content.trash')->with('status', 'Catatan dihapus permanen.');
     }
 }
