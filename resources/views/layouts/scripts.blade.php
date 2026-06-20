@@ -1,326 +1,440 @@
-        {{-- SCRIPT --}}
-        <script>
-            const notesContainer = document.getElementById('notesContainer');
+{{-- SCRIPT UTAMA APLIKASI --}}
+<script>
+    const notesContainer = document.getElementById('notesContainer');
 
-            // ===== Toolbar =====
-            document.querySelectorAll('.toolbar button[data-cmd]').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    document.execCommand(this.dataset.cmd, false, null);
+    // ===== 1. TEXT EDITOR TOOLBAR (RICH TEXT) =====
+    document.querySelectorAll('.toolbar button[data-cmd]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.execCommand(this.dataset.cmd, false, null);
+        });
+    });
+
+    // ===== 2. IMAGE UPLOAD HANDLING =====
+    const uploadIconBtn = document.getElementById('uploadIconBtn');
+    const imageInput = document.getElementById('imageInput');
+    const editUploadIconBtn = document.getElementById('editUploadIconBtn');
+    const editImageInput = document.getElementById('editImageInput');
+    const fileNameDisplay = document.getElementById('fileName');
+
+    if (uploadIconBtn && imageInput) {
+        uploadIconBtn.addEventListener('click', () => imageInput.click());
+        imageInput.addEventListener('change', e => {
+            fileNameDisplay.textContent = e.target.files[0]?.name || '';
+        });
+    }
+
+    if (editUploadIconBtn && editImageInput) {
+        editUploadIconBtn.addEventListener('click', () => editImageInput.click());
+    }
+
+    // ===== 3. PREMIUM TOAST NOTIFICATION =====
+    function showToast(message, type = 'success') {
+        const toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) return;
+
+        const toast = document.createElement('div');
+        toast.className =
+            `toast ${type === 'success' ? 'bg-emerald-500/90 border border-emerald-400/20' : 'bg-rose-500/90 border border-rose-400/20'} text-white shadow-xl rounded-xl px-4 py-3 flex items-center space-x-3 transform translate-y-[-20px] opacity-0 transition-all duration-500 ease-out backdrop-blur-md`;
+        toast.innerHTML =
+            `<i class="text-lg ${type === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'}"></i><span class="text-xs font-medium">${message}</span>`;
+
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.remove('translate-y-[-20px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-10px]', 'opacity-0');
+                setTimeout(() => toast.remove(), 500);
+            }, 2500);
+        }, 10);
+    }
+
+    // ===== 4. CREATE MODAL SYSTEM =====
+    const createModal = document.getElementById('createModal');
+    const createModalContent = document.getElementById('createModalContent');
+    const openModalBtn = document.getElementById('openModalBtn');
+    const closeCreateBtn = document.getElementById('closeCreateBtn');
+    const closeCreateIcon = document.getElementById('closeCreateIcon');
+
+    function openCreateModal() {
+        if (!createModal || !createModalContent) return;
+        createModal.classList.remove('hidden', 'pointer-events-none');
+        setTimeout(() => {
+            createModal.classList.add('opacity-100');
+            createModalContent.classList.add('translate-y-0', 'scale-100');
+            createModalContent.classList.remove('translate-y-4', 'scale-95');
+        }, 10);
+    }
+
+    function closeCreateModal() {
+        if (!createModal || !createModalContent) return;
+        createModal.classList.add('opacity-0');
+        createModalContent.classList.add('translate-y-4', 'scale-95');
+        createModalContent.classList.remove('translate-y-0', 'scale-100');
+        setTimeout(() => createModal.classList.add('hidden', 'pointer-events-none'), 300);
+    }
+
+    if (openModalBtn) openModalBtn.addEventListener('click', openCreateModal);
+    if (closeCreateBtn) closeCreateBtn.addEventListener('click', closeCreateModal);
+    if (closeCreateIcon) closeCreateIcon.addEventListener('click', closeCreateModal);
+    if (createModal) {
+        createModal.addEventListener('click', e => {
+            if (e.target === createModal) closeCreateModal();
+        });
+    }
+
+    // ===== 5. AJAX CREATE NOTE SUBMIT =====
+    const createNoteForm = document.getElementById('createNoteForm');
+    if (createNoteForm) {
+        createNoteForm.addEventListener('submit', async e => {
+            e.preventDefault();
+
+            const editorContent = document.getElementById('editor').innerHTML.trim();
+            document.getElementById('hiddenContent').value = editorContent;
+
+            const formData = new FormData(createNoteForm);
+
+            try {
+                const res = await fetch(createNoteForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
                 });
+
+                if (!res.ok) throw new Error('Server error');
+
+                const note = await res.json();
+                upsertNoteInDOM(note);
+
+                createNoteForm.reset();
+                document.getElementById('editor').innerHTML = '';
+                fileNameDisplay.textContent = '';
+                closeCreateModal();
+                showToast('Note created successfully!');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to create note', 'error');
+            }
+        });
+    }
+
+    // ===== 6. EDIT MODAL SYSTEM =====
+    const editModal = document.getElementById('editModal');
+    const editModalContent = document.getElementById('editModalContent');
+    const closeEditBtn = document.getElementById('closeEditBtn');
+    const closeEditIcon = document.getElementById('closeEditIcon');
+    const editForm = document.getElementById('editNoteForm');
+
+    // AJAX Submit Form Edit
+    async function submitEditForm() {
+        if (!editForm) return;
+        document.getElementById('editHiddenContent').value = document.getElementById('editEditor').innerHTML.trim();
+
+        const formData = new FormData(editForm);
+        formData.append('_method', 'PUT');
+
+        try {
+            const res = await fetch(editForm.action, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
             });
 
-            // ===== Image Upload =====
-            document.getElementById('uploadIconBtn').addEventListener('click', () => document.getElementById('imageInput')
-                .click());
-            document.getElementById('imageInput').addEventListener('change', e => {
-                document.getElementById('fileName').textContent = e.target.files[0]?.name || '';
-            });
-            document.getElementById('editUploadIconBtn').addEventListener('click', () => document.getElementById(
-                'editImageInput').click());
+            if (!res.ok) throw new Error('Update failed');
 
-            // ===== Toast Notification =====
-            function showToast(message, type = 'success') {
-                const toastContainer = document.getElementById('toastContainer');
-                const toast = document.createElement('div');
-                toast.className =
-                    `toast ${type==='success'?'bg-green-500/90':'bg-red-500/90'} text-white shadow-lg rounded-xl px-4 py-3 flex items-center space-x-3 transform translate-y-[-20px] opacity-0 transition-all duration-500 ease-out`;
-                toast.innerHTML =
-                    `<i class="text-xl ${type==='success'?'fa-solid fa-circle-check':'fa-solid fa-circle-xmark'}"></i><span>${message}</span>`;
-                toastContainer.appendChild(toast);
+            const note = await res.json();
+            upsertNoteInDOM(note);
+            showToast('Note updated successfully!');
+        } catch (err) {
+            console.error(err);
+            showToast('Failed to update note', 'error');
+        }
+    }
 
-                setTimeout(() => {
-                    toast.classList.remove('translate-y-[-20px]', 'opacity-0');
-                    toast.classList.add('translate-y-0', 'opacity-100');
-                    setTimeout(() => {
-                        toast.classList.remove('translate-y-0', 'opacity-100');
-                        toast.classList.add('translate-y-[-10px]', 'opacity-0');
-                        setTimeout(() => toast.remove(), 500);
-                    }, 2000);
-                }, 10);
+    // Penutupan Modal Edit yang Fleksibel (save = true/false)
+    async function closeEditModal(save = true) {
+        if (!editModal || !editModalContent) return;
+        if (save) await submitEditForm();
+
+        editModal.classList.add('opacity-0');
+        editModalContent.classList.add('translate-y-4', 'scale-95');
+        editModalContent.classList.remove('translate-y-0', 'scale-100');
+        setTimeout(() => editModal.classList.add('hidden', 'pointer-events-none'), 300);
+    }
+
+    if (closeEditBtn) closeEditBtn.addEventListener('click', () => closeEditModal(false));
+    if (closeEditIcon) closeEditIcon.addEventListener('click', () => closeEditModal(false));
+    if (editModal) {
+        editModal.addEventListener('click', e => {
+            if (e.target === editModal) closeEditModal(false);
+        });
+    }
+    if (editForm) {
+        editForm.addEventListener('submit', async e => {
+            e.preventDefault();
+            await closeEditModal(true);
+        });
+    }
+
+    // ===== 7. OPEN EDIT MODAL VIA CLICK EVENT =====
+    if (notesContainer) {
+        notesContainer.addEventListener('click', async e => {
+            // 1. Amankan klik agar tidak bentrok dengan aksi tombol hapus/confirm modal
+            if (e.target.closest('.delete-form') ||
+                e.target.closest('button[onclick*="openConfirmModal"]') ||
+                e.target.closest('#confirmModal')) {
+                return;
             }
 
-            // ===== CREATE MODAL =====
-            const createModal = document.getElementById('createModal');
-            const createModalContent = document.getElementById('createModalContent');
-            const openModalBtn = document.getElementById('openModalBtn');
-            const closeCreateBtn = document.getElementById('closeCreateBtn');
-            const closeCreateIcon = document.getElementById('closeCreateIcon');
+            // 2. Cari target card berdasarkan class .note-card
+            const noteCard = e.target.closest('.note-card');
+            if (!noteCard) return;
 
-            function openCreateModal() {
-                createModal.classList.remove('hidden', 'pointer-events-none');
-                setTimeout(() => {
-                    createModal.classList.add('opacity-100');
-                    createModalContent.classList.add('translate-y-0', 'scale-100');
-                    createModalContent.classList.remove('translate-y-8', 'scale-95');
-                }, 10);
-            }
+            const id = noteCard.dataset.id;
+            if (!id) return;
 
-            function closeCreateModal() {
-                createModal.classList.add('opacity-0');
-                createModalContent.classList.add('translate-y-8', 'scale-95');
-                createModalContent.classList.remove('translate-y-0', 'scale-100');
-                setTimeout(() => createModal.classList.add('hidden', 'pointer-events-none'), 300);
-            }
+            try {
+                const res = await fetch(`/content/${id}`);
+                if (!res.ok) throw new Error('Data fetch failed');
 
-            openModalBtn.addEventListener('click', openCreateModal);
-            closeCreateBtn.addEventListener('click', closeCreateModal);
-            closeCreateIcon.addEventListener('click', closeCreateModal);
-            createModal.addEventListener('click', e => {
-                if (e.target === createModal) closeCreateModal();
-            });
+                const note = await res.json();
 
-            // ===== CREATE NOTE AJAX =====
-            document.getElementById('createNoteForm').addEventListener('submit', async e => {
-                e.preventDefault();
+                if (editForm) editForm.action = `/content/${id}`;
 
-                // Sync editor content ke textarea
-                const editorContent = document.getElementById('editor').innerHTML.trim();
-                document.getElementById('hiddenContent').value = editorContent;
+                const editTitleEl = document.getElementById('editTitle');
+                const editEditorEl = document.getElementById('editEditor');
+                const editFileNameDisplay = document.getElementById('editFileName');
 
-                const form = e.target;
-                const formData = new FormData(form);
-
-                try {
-                    const res = await fetch(form.action, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: formData
-                    });
-
-                    if (!res.ok) throw new Error('Network response was not ok');
-
-                    const note = await res.json();
-
-                    // Gunakan upsertNoteInDOM secara konsisten
-                    upsertNoteInDOM(note);
-
-                    // Reset form
-                    form.reset();
-                    document.getElementById('editor').innerHTML = '';
-                    document.getElementById('fileName').textContent = '';
-                    closeCreateModal();
-                    showToast('Note created successfully!');
-                } catch (err) {
-                    console.error(err);
-                    showToast('Failed to create note', 'error');
+                // PERBAIKAN: Pastikan menggunakan penulisan properti objek data yang tepat dari backend
+                if (editTitleEl) {
+                    editTitleEl.value = note.title || '';
                 }
-            });
 
-
-            // ===== EDIT MODAL =====
-            const editModal = document.getElementById('editModal');
-            const editModalContent = document.getElementById('editModalContent');
-            const closeEditBtn = document.getElementById('closeEditBtn');
-            const closeEditIcon = document.getElementById('closeEditIcon');
-            const editForm = document.getElementById('editNoteForm');
-
-            // ===== SUBMIT EDIT FORM =====
-            async function submitEditForm() {
-                // Sync editor content ke hidden textarea
-                document.getElementById('editHiddenContent').value = document.getElementById('editEditor').innerHTML.trim();
-                const formData = new FormData(editForm);
-                formData.append('_method', 'PUT');
-
-                try {
-                    const res = await fetch(editForm.action, {
-                        method: 'POST',
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        body: formData
-                    });
-
-                    if (!res.ok) throw new Error('Network response was not ok');
-
-                    const note = await res.json();
-
-                    // Gunakan upsertNoteInDOM secara konsisten
-                    upsertNoteInDOM(note);
-
-                    showToast('Note updated successfully!');
-                } catch (err) {
-                    console.error(err);
-                    showToast('Failed to update note', 'error');
+                // Isi konten ke dalam editor rich text
+                if (editEditorEl) {
+                    editEditorEl.innerHTML = note.content || '';
                 }
-            }
 
-            // ===== CLOSE EDIT MODAL =====
-            async function closeEditModal(save = true) {
-                if (save) await submitEditForm();
-                editModal.classList.add('opacity-0');
-                editModalContent.classList.add('translate-y-8', 'scale-95');
-                editModalContent.classList.remove('translate-y-0', 'scale-100');
-                setTimeout(() => editModal.classList.add('hidden', 'pointer-events-none'), 300);
-            }
+                // Reset indikator nama file gambar baru saat modal pertama kali terbuka
+                if (editFileNameDisplay) {
+                    editFileNameDisplay.textContent = '';
+                }
 
-            // Event listeners
-            closeEditBtn.addEventListener('click', async () => await closeEditModal(true));
-            closeEditIcon.addEventListener('click', async () => await closeEditModal(true));
-            editModal.addEventListener('click', async e => {
-                if (e.target === editModal) await closeEditModal(true);
-            });
-            editForm.addEventListener('submit', async e => {
-                e.preventDefault();
-                await closeEditModal(true);
-            });
-
-
-
-            // ===== OPEN EDIT MODAL =====
-            notesContainer.addEventListener('click', async e => {
-                const noteCard = e.target.closest('.note-card');
-                if (!noteCard) return;
-                const id = noteCard.dataset.id;
-                try {
-                    const res = await fetch(`/content/${id}`);
-                    const note = await res.json();
-                    upsertNoteInDOM(note);
-
-                    editForm.action = `/content/${id}`;
-                    document.getElementById('editTitle').value = note.title;
-                    document.getElementById('editEditor').innerHTML = note.content || '';
+                // 3. Tampilkan modal edit ke permukaan screen dengan animasi smooth
+                if (editModal && editModalContent) {
                     editModal.classList.remove('hidden', 'pointer-events-none');
                     setTimeout(() => {
                         editModal.classList.add('opacity-100');
+                        editModalContent.classList.remove('translate-y-4', 'scale-95',
+                            'translate-y-8');
                         editModalContent.classList.add('translate-y-0', 'scale-100');
-                        editModalContent.classList.remove('translate-y-8', 'scale-95');
-                    }, 10);
-                } catch (err) {
-                    console.error(err);
-                    showToast('Failed to load note for editing', 'error');
+                    }, 30);
                 }
-            });
-
-            // ===== SEARCH / FILTER / SORT AJAX =====
-            const searchInput = document.getElementById('searchInput');
-            const dateFilter = document.getElementById('dateFilter');
-            const sortSelect = document.getElementById('sortSelect');
-            const resetBtn = document.getElementById('resetFilterBtn');
-
-            async function fetchFilteredNotes() {
-                const params = new URLSearchParams({
-                    search: searchInput.value.trim(),
-                    date: dateFilter.value,
-                    sort: sortSelect.value
-                });
-                try {
-                    const res = await fetch(`/content?${params.toString()}`, {
-                        headers: {
-                            'X-Requested-With': 'XMLHttpRequest'
-                        }
-                    });
-                    const html = await res.text();
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = html;
-                    const newNotes = tempDiv.querySelector('#notesContainer')?.innerHTML;
-                    if (newNotes) notesContainer.innerHTML = newNotes;
-                } catch (err) {
-                    console.error(err);
-                }
+            } catch (err) {
+                console.error('Error detail:', err);
+                showToast('Failed to load note data', 'error');
             }
+        });
+    }
 
-            let searchTimeout;
-            searchInput.addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(fetchFilteredNotes, 400);
+    // ===== 8. AJAX SEARCH / FILTER / SORT SYSTEM =====
+    const searchInput = document.getElementById('searchInput');
+    const dateFilter = document.getElementById('dateFilter');
+    const sortSelect = document.getElementById('sortSelect');
+    const resetBtn = document.getElementById('resetFilterBtn');
+
+    async function fetchFilteredNotes() {
+        if (!notesContainer) return;
+        const params = new URLSearchParams({
+            search: searchInput?.value.trim() || '',
+            date: dateFilter?.value || '',
+            sort: sortSelect?.value || 'desc'
+        });
+
+        try {
+            const res = await fetch(`/content?${params.toString()}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
             });
-            dateFilter.addEventListener('change', fetchFilteredNotes);
-            sortSelect.addEventListener('change', fetchFilteredNotes);
-            resetBtn.addEventListener('click', () => {
-                searchInput.value = '';
-                dateFilter.value = '';
-                sortSelect.value = 'desc';
-                fetchFilteredNotes();
-            });
+            const html = await res.text();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            const newNotes = tempDiv.querySelector('#notesContainer')?.innerHTML;
+            if (newNotes) notesContainer.innerHTML = newNotes;
+        } catch (err) {
+            console.error(err);
+        }
+    }
 
-            // ===== INITIAL TOASTS FROM SESSION =====
-            @if (session('success'))
-                showToast("{{ session('success') }}", 'success');
-            @endif
-            @if (session('error'))
-                showToast("{{ session('error') }}", 'error');
-            @endif
-        </script>
+    let searchTimeout;
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(fetchFilteredNotes, 400);
+        });
+    }
+    if (dateFilter) dateFilter.addEventListener('change', fetchFilteredNotes);
+    if (sortSelect) sortSelect.addEventListener('change', fetchFilteredNotes);
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            if (dateFilter) dateFilter.value = '';
+            if (sortSelect) sortSelect.value = 'desc';
+            fetchFilteredNotes();
+        });
+    }
 
-        <script>
-            function upsertNoteInDOM(note) {
-                const cardDate = note.updated_at ? new Date(note.updated_at) : new Date();
-                const timestamp = cardDate.getTime();
+    // ===== 9. SYSTEM FLASH MESSAGES =====
+    @if (session('success'))
+        showToast("{{ session('success') }}", 'success');
+    @endif
+    @if (session('error'))
+        showToast("{{ session('error') }}", 'error');
+    @endif
+</script>
 
-                // Hapus card lama jika ada
-                let card = document.querySelector(`.note-card[data-id="${note.id}"]`);
-                if (card) card.remove();
+{{-- SCRIPT METADATA DOM SINKRONISASI --}}
+<script>
+    function upsertNoteInDOM(note) {
+        if (!notesContainer) return;
 
-                // Template HTML baru, sama dengan Blade
-                const noteHtml = `
-<div class="relative p-4 transition bg-white shadow-md cursor-pointer note-card rounded-xl hover:shadow-lg"
-     data-id="${note.id}" data-timestamp="${timestamp}"
-     data-title="${note.title.toLowerCase()}" data-date="${cardDate.toISOString().split('T')[0]}">
+        const cardDate = note.updated_at ? new Date(note.updated_at) : new Date();
+        const timestamp = cardDate.getTime();
 
-     <form action="/content/${note.id}" method="POST" class="absolute z-10 bottom-3 right-3 delete-form">
-         @csrf
-         @method('DELETE')
-         <button type="button"
-             class="p-2 text-red-500 transition bg-white rounded-full shadow hover:bg-red-100 hover:text-red-600"
-             onclick="openConfirmModal(event, this)">
-             <i class="fa-solid fa-trash"></i>
-         </button>
-     </form>
+        // 1. Ambil semua kartu yang saat ini ada di layar, simpan ke dalam array objek sementara
+        const allCardsData = Array.from(notesContainer.querySelectorAll('.note-card')).map(card => {
+            return {
+                id: card.dataset.id,
+                timestamp: parseInt(card.dataset.timestamp) || 0,
+                html: card.outerHTML
+            };
+        });
 
-     ${note.image ? `<img src="/storage/${note.image}" class="object-cover w-full h-40 mb-3 rounded-lg">` : ''}
+        // 2. Format ulang tanggal untuk tampilan teks pada card baru
+        const dateText = cardDate.toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: 'short'
+        });
+        const timeText = cardDate.toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
 
-     <h2 class="text-lg font-semibold text-gray-800 break-words line-clamp-2">${note.title}</h2>
+        // 3. Siapkan string template HTML untuk note baru/yang baru saja di-update
+        const newNoteHtml = `
+<div class="relative note-card flex flex-col justify-between p-6 transition-all duration-300 bg-white border cursor-pointer group dark:bg-slate-900 border-slate-200/60 dark:border-slate-800/60 rounded-2xl hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-slate-100 dark:hover:shadow-none hover:-translate-y-0.5"
+    data-id="${note.id}" data-timestamp="${timestamp}" data-title="${note.title.toLowerCase()}" data-date="${cardDate.toISOString().split('T')[0]}">
 
-     <div class="relative mt-1 overflow-hidden text-sm text-gray-600 max-h-20 note-content">
-         ${note.content}
-         <div class="absolute bottom-0 left-0 w-full h-6 "></div>
-     </div>
+    <form action="/content/${note.id}" method="POST" class="absolute z-10 transition-all duration-200 opacity-0 top-4 right-4 group-hover:opacity-100 delete-form">
+        <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]')?.content || ''}">
+        <input type="hidden" name="_method" value="DELETE">
+        <button type="button"
+            class="flex items-center justify-center w-8 h-8 transition-all bg-white border rounded-lg shadow-sm text-slate-400 hover:text-red-500 dark:bg-slate-800 dark:border-slate-700 hover:shadow"
+            onclick="openConfirmModal(event, this)">
+            <i class="text-xs fa-solid fa-trash-can"></i>
+        </button>
+    </form>
 
-     <p class="mt-2 text-xs text-gray-400">
-        ${cardDate.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' })},
-        ${cardDate.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}
-     </p>
+    <div>
+        ${note.image ? `
+            <div class="w-full mb-4 overflow-hidden border h-44 rounded-xl border-slate-100 dark:border-slate-800">
+                <img src="/storage/${note.image}" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105">
+            </div>
+        ` : ''}
+
+        <h3 class="text-lg font-semibold tracking-tight break-words transition-colors text-slate-800 dark:text-slate-100 line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+            ${note.title || 'Untitled Note'}
+        </h3>
+
+        <div class="relative mt-2 text-sm leading-relaxed text-slate-500 dark:text-slate-400 line-clamp-3">
+            ${note.content ? note.content.replace(/<\/?[^>]+(>|$)/g, "") : ''}
+        </div>
+    </div>
+
+    <div class="flex items-center justify-between pt-4 mt-5 border-t border-slate-100 dark:border-slate-800/80">
+        <span class="inline-flex items-center gap-1.5 text-xs text-slate-400 font-medium">
+            <i class="text-[10px] fa-regular fa-clock"></i>
+            ${dateText}, ${timeText}
+        </span>
+        <span class="flex items-center gap-1 text-xs font-semibold text-indigo-500 transition-opacity duration-200 opacity-0 group-hover:opacity-100">
+            Open <i class="text-[10px] fa-solid fa-arrow-right"></i>
+        </span>
+    </div>
 </div>`;
 
+        // 4. Cari tahu apakah catatan ini memperbarui data lama atau membuat data baru
+        const existingIndex = allCardsData.findIndex(c => String(c.id) === String(note.id));
 
-                notesContainer.insertAdjacentHTML('afterbegin', noteHtml);
-
-                // Urutkan ulang notes
-                const allCards = Array.from(notesContainer.querySelectorAll('.note-card'));
-                allCards.sort((a, b) => b.dataset.timestamp - a.dataset.timestamp);
-                allCards.forEach(c => notesContainer.appendChild(c));
-            }
-        </script>
-        <script>
-            document.addEventListener('paste', function(e) {
-                const editor = document.querySelector('#editor');
-                if (editor && editor.contains(document.activeElement)) {
-                    e.preventDefault();
-                    const text = e.clipboardData.getData('text/plain');
-                    document.execCommand('insertText', false, text);
-                }
+        if (existingIndex !== -1) {
+            // Jika update: Perbarui timestamp dan isi HTML data lama tersebut
+            allCardsData[existingIndex].timestamp = timestamp;
+            allCardsData[existingIndex].html = newNoteHtml;
+        } else {
+            // Jika create baru: Masukkan data objek baru ke dalam array list data
+            allCardsData.push({
+                id: note.id,
+                timestamp: timestamp,
+                html: newNoteHtml
             });
-        </script>
+        }
 
-        <!-- Dark Mode Script -->
-        <script>
-            const toggle = document.getElementById('themeToggle');
-            const icon = document.getElementById('themeIcon');
-            const html = document.documentElement;
+        // 5. Jalankan logika pengurutan array berdasarkan dropdown filter aktif saat ini
+        const currentSort = document.getElementById('sortSelect')?.value || 'desc';
+        allCardsData.sort((a, b) => {
+            return currentSort === 'desc' ? (b.timestamp - a.timestamp) : (a.timestamp - b.timestamp);
+        });
 
-            // Apply saved theme
-            if (localStorage.getItem('theme') === 'dark') {
-                html.classList.add('dark');
-                icon.classList.replace('fa-moon', 'fa-sun');
-            }
+        // 6. Kosongkan container notes sementara, lalu render ulang tumpukan array yang sudah terurut rapi
+        notesContainer.innerHTML = '';
+        allCardsData.forEach(cardObj => {
+            notesContainer.insertAdjacentHTML('beforeend', cardObj.html);
+        });
+    }
+</script>
 
-            toggle.addEventListener('click', () => {
-                html.classList.toggle('dark');
-                const isDark = html.classList.contains('dark');
-                localStorage.setItem('theme', isDark ? 'dark' : 'light');
-                icon.classList.toggle('fa-moon', !isDark);
-                icon.classList.toggle('fa-sun', isDark);
-            });
-        </script>
+{{-- SECURITY PASTE & THEME SYSTEM --}}
+<script>
+    // Format Plaintext saat Paste di Editor Rich Text
+    document.addEventListener('paste', function(e) {
+        const editor = document.querySelector('#editor');
+        const editEditor = document.querySelector('#editEditor');
+        if ((editor && editor.contains(document.activeElement)) || (editEditor && editEditor.contains(document
+                .activeElement))) {
+            e.preventDefault();
+            const text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        }
+    });
+
+    // Dark Mode LocalStorage Engine
+    const toggle = document.getElementById('themeToggle');
+    const icon = document.getElementById('themeIcon');
+    const html = document.documentElement; // Mengontrol class level root html
+
+    function syncThemeIcon() {
+        if (html.classList.contains('dark')) {
+            if (icon) icon.classList.replace('fa-moon', 'fa-sun');
+        } else {
+            if (icon) icon.classList.replace('fa-sun', 'fa-moon');
+        }
+    }
+
+    // Jalankan sinkronisasi ikon awal saat halaman dibuka
+    syncThemeIcon();
+
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            syncThemeIcon();
+        });
+    }
+</script>

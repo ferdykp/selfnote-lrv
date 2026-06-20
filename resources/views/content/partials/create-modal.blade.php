@@ -1,73 +1,64 @@
-{{-- Modal Create Note --}}
 <div id="createModal"
-    class="fixed inset-0 z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0 pointer-events-none bg-black/50 backdrop-blur-sm">
+    class="fixed inset-0 z-50 flex items-center justify-center hidden transition-all duration-300 opacity-0 pointer-events-none bg-slate-950/40 backdrop-blur-md">
 
     <div id="createModalContent"
-        class="relative w-full max-w-3xl mx-4 overflow-hidden transition-all duration-300 scale-95 translate-y-8 bg-white shadow-2xl rounded-2xl">
+        class="relative w-full max-w-2xl mx-4 overflow-hidden transition-all duration-300 scale-95 translate-y-4 bg-white border shadow-2xl dark:bg-slate-900 rounded-2xl border-slate-200/80 dark:border-slate-800/80">
 
-        {{-- Header --}}
-        <div class="flex items-center justify-between p-5 border-b">
-            <h2 class="text-xl font-semibold text-gray-800">Create New Note</h2>
-            <button id="closeCreateIcon" class="text-gray-500 hover:text-gray-700">✕</button>
+        {{-- Modal Title Line --}}
+        <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100">Draft New Note</h2>
+            <button id="closeCreateIcon"
+                class="text-sm transition text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">✕</button>
         </div>
 
-        {{-- Form --}}
-        <form id="createNoteForm" action="{{ route('content.store') }}" method="POST" enctype="multipart/form-data"
-            class="flex flex-col h-[80vh] overflow-hidden">
+        <form id="createNoteForm" action="{{ route('content.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
 
-            {{-- Body Form --}}
-            <div class="flex-1 p-5 space-y-5 overflow-y-auto">
+            <div class="p-6 space-y-4">
+                {{-- Borderless Title Input --}}
+                <input type="text" name="title" placeholder="Untitled Note"
+                    class="w-full px-0 py-1 text-2xl font-bold bg-transparent border-0 border-b border-transparent focus:border-slate-100 dark:focus:border-slate-800 focus:ring-0 focus:outline-none placeholder-slate-300 dark:placeholder-slate-700 text-slate-800 dark:text-white">
 
-                {{-- Title --}}
-                <div>
-                    <label class="block mb-1 text-sm font-medium text-gray-700">Title</label>
-                    <input type="text" name="title" placeholder="Enter title"
-                        class="w-full p-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 focus:outline-none">
+                {{-- Toolbar Rich Editor Minimalis --}}
+                <div
+                    class="flex flex-wrap items-center gap-1.5 p-1.5 border rounded-xl bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400">
+                    <button type="button" data-cmd="bold"
+                        class="w-8 h-8 transition rounded-lg shadow-none hover:bg-white dark:hover:bg-slate-900 hover:text-slate-800 hover:shadow-sm"
+                        title="Bold"><i class="text-xs fa-solid fa-bold"></i></button>
+                    <button type="button" data-cmd="italic"
+                        class="w-8 h-8 transition rounded-lg shadow-none hover:bg-white dark:hover:bg-slate-900 hover:text-slate-800 hover:shadow-sm"
+                        title="Italic"><i class="text-xs fa-solid fa-italic"></i></button>
+                    <button type="button" data-cmd="insertUnorderedList"
+                        class="w-8 h-8 transition rounded-lg shadow-none hover:bg-white dark:hover:bg-slate-900 hover:text-slate-800 hover:shadow-sm"
+                        title="List"><i class="text-xs fa-solid fa-list-ul"></i></button>
+
+                    <div class="w-px h-4 mx-1 bg-slate-200 dark:bg-slate-800"></div>
+
+                    <button type="button" id="uploadIconBtn"
+                        class="flex items-center gap-1 px-2.5 h-8 text-xs font-medium rounded-lg hover:bg-white dark:hover:bg-slate-900 hover:text-slate-800 transition border border-transparent hover:border-slate-200/60 dark:hover:border-slate-800"
+                        title="Attach Image">
+                        <i class="fa-solid fa-image"></i> <span>Cover Image</span>
+                    </button>
+                    <input type="file" id="imageInput" name="image" hidden>
                 </div>
 
-                {{-- Content --}}
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-gray-700">Content</label>
-
-                    {{-- Toolbar --}}
-                    <div class="flex flex-wrap items-center gap-3 p-2 mb-2 text-gray-700 border rounded-lg bg-gray-50">
-                        <button type="button" data-cmd="bold" title="Bold"><i class="fa-solid fa-bold"></i></button>
-                        <button type="button" data-cmd="italic" title="Italic"><i
-                                class="fa-solid fa-italic"></i></button>
-                        <button type="button" data-cmd="underline" title="Underline"><i
-                                class="fa-solid fa-underline"></i></button>
-                        <button type="button" data-cmd="insertUnorderedList" title="Bullet List"><i
-                                class="fa-solid fa-list-ul"></i></button>
-                        <button type="button" data-cmd="insertOrderedList" title="Numbered List"><i
-                                class="fa-solid fa-list-ol"></i></button>
-                        <button type="button" data-cmd="justifyLeft" title="Align Left"><i
-                                class="fa-solid fa-align-left"></i></button>
-                        <button type="button" data-cmd="justifyCenter" title="Align Center"><i
-                                class="fa-solid fa-align-center"></i></button>
-                        <button type="button" data-cmd="justifyRight" title="Align Right"><i
-                                class="fa-solid fa-align-right"></i></button>
-                        <button type="button" id="uploadIconBtn" title="Upload Image"><i
-                                class="fa-solid fa-image"></i></button>
-                        <input type="file" id="imageInput" name="image" hidden>
-                    </div>
-
-                    {{-- Editor (scrollable + responsive) --}}
-                    <div id="editor" contenteditable="true"
-                        class="w-full p-3 border border-gray-300 rounded-lg min-h-[390px] max-h-[50vh] overflow-y-auto focus:outline-none focus:ring focus:ring-blue-200 bg-white break-words text-gray-700">
-                    </div>
-                    <textarea name="content" id="hiddenContent" hidden></textarea>
+                {{-- Clean Workspace Editor --}}
+                <div id="editor" contenteditable="true" placeholder="Start typing your ideas here..."
+                    class="w-full min-h-[260px] max-h-[45vh] overflow-y-auto focus:outline-none bg-transparent text-sm leading-relaxed text-slate-700 dark:text-slate-300 break-words prose dark:prose-invert">
                 </div>
+                <textarea name="content" id="hiddenContent" hidden></textarea>
             </div>
 
-            {{-- Footer --}}
-            <div class="flex items-center justify-between p-5 border-t bg-gray-50">
-                <span id="fileName" class="text-sm text-gray-500"></span>
-                <div class="flex space-x-2">
+            {{-- Footer Sticky Bottom --}}
+            <div
+                class="flex items-center justify-between px-6 py-4 border-t bg-slate-50/50 dark:bg-slate-950/30 border-slate-100 dark:border-slate-800/80">
+                <span id="fileName" class="max-w-xs text-xs font-medium text-indigo-500 truncate"></span>
+                <div class="flex items-center space-x-2">
                     <button type="button" id="closeCreateBtn"
-                        class="px-4 py-2 transition bg-gray-300 rounded-lg hover:bg-gray-400">Cancel</button>
+                        class="px-4 py-2 text-sm font-medium transition bg-white border dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-50">Cancel</button>
                     <button type="submit"
-                        class="px-4 py-2 text-white transition bg-blue-600 rounded-lg hover:bg-blue-700">Save</button>
+                        class="px-5 py-2 text-sm font-medium text-white transition bg-indigo-600 shadow-sm rounded-xl hover:bg-indigo-700 shadow-indigo-600/10">Publish
+                        Note</button>
                 </div>
             </div>
         </form>

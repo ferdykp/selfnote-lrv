@@ -25,17 +25,21 @@ class NoteContentController extends Controller
             $query->whereDate('date', $request->date);
         }
 
+        // AMAN: Tangkap parameter sort ('desc' atau 'asc')
         $sort = $request->get('sort', 'desc');
-        $contents = $query->orderBy('date', $sort)->get();
+
+        // PERBAIKAN: Urutkan berdasarkan updated_at agar presisi hingga detik jam pembaruan
+        $contents = $query->orderBy('updated_at', $sort)->get();
 
         // Partial view untuk AJAX
         if ($request->ajax()) {
+            // TIPS: Pastikan Anda hanya merender partial container-nya saja jika menggunakan AJAX, 
+            // namun jika merender view index penuh, kode di bawah ini sudah cukup.
             return view('content.index', compact('contents'))->render();
         }
 
         return view('content.index', compact('contents'));
     }
-
     // ===== GET SINGLE NOTE =====
     public function show(NoteContent $content)
     {

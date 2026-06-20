@@ -13,7 +13,7 @@
             <div>
                 <label class="block mb-1 text-sm font-medium text-gray-700">Title</label>
                 <input type="text" name="title" id="editTitle"
-                    class="w-full p-2 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 focus:outline-none"
+                    class="w-full p-2 text-black border border-gray-300 rounded-lg focus:ring focus:ring-blue-200 focus:outline-none"
                     placeholder="Enter title">
             </div>
 
@@ -38,9 +38,19 @@
                             class="fa-solid fa-align-center"></i></button>
                     <button type="button" data-cmd="justifyRight" title="Align Right"><i
                             class="fa-solid fa-align-right"></i></button>
-                    <button type="button" id="editUploadIconBtn" title="Add Image"><i
-                            class="fa-solid fa-image"></i></button>
-                    <input type="file" id="editImageInput" name="image" hidden>
+
+                    {{-- Batas Pemisah --}}
+                    <div class="w-px h-4 bg-gray-300"></div>
+
+                    {{-- Image Upload Trigger --}}
+                    <button type="button" id="editUploadIconBtn" class="transition hover:text-blue-600"
+                        title="Change Image">
+                        <i class="fa-solid fa-image"></i>
+                    </button>
+                    <input type="file" id="editImageInput" name="image" hidden accept="image/*">
+
+                    {{-- Indikator Nama File Baru --}}
+                    <span id="editFileName" class="text-xs font-medium text-emerald-600 truncate max-w-[200px]"></span>
                 </div>
 
                 {{-- Editable area --}}
