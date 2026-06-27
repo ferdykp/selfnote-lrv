@@ -17,6 +17,7 @@ return new class extends Migration
             $table->text('content');
             $table->string('images')->nullable();
             $table->date('date')->nullable();
+            $table->enum('status', ['draft', 'published']);
             $table->softDeletes(); // ← kolom 'deleted_at' untuk fitur soft delete
             $table->timestamps();  // simpan created_at & updated_at
         });

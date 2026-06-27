@@ -13,7 +13,8 @@ class NoteContent extends Model
         'title',
         'content',
         'images',
-        'date'
+        'date',
+        'status'
     ];
 
     // Opsi tambahan (tidak wajib, tapi disarankan)

@@ -15,6 +15,7 @@
     const editUploadIconBtn = document.getElementById('editUploadIconBtn');
     const editImageInput = document.getElementById('editImageInput');
     const fileNameDisplay = document.getElementById('fileName');
+    const editFileNameDisplay = document.getElementById('editFileName');
 
     if (uploadIconBtn && imageInput) {
         uploadIconBtn.addEventListener('click', () => imageInput.click());
@@ -25,6 +26,11 @@
 
     if (editUploadIconBtn && editImageInput) {
         editUploadIconBtn.addEventListener('click', () => editImageInput.click());
+        editImageInput.addEventListener('change', e => {
+            if (editFileNameDisplay) {
+                editFileNameDisplay.textContent = e.target.files[0]?.name || '';
+            }
+        });
     }
 
     // ===== 3. PREMIUM TOAST NOTIFICATION =====
@@ -86,6 +92,7 @@
     }
 
     // ===== 5. AJAX CREATE NOTE SUBMIT =====
+    // ===== 5. AJAX CREATE NOTE SUBMIT =====
     const createNoteForm = document.getElementById('createNoteForm');
     if (createNoteForm) {
         createNoteForm.addEventListener('submit', async e => {
@@ -94,6 +101,7 @@
             const editorContent = document.getElementById('editor').innerHTML.trim();
             document.getElementById('hiddenContent').value = editorContent;
 
+            // Ambil semua data form, otomatis termasuk #createStatusInput yang sudah diubah nilainya
             const formData = new FormData(createNoteForm);
 
             try {
@@ -112,12 +120,15 @@
 
                 createNoteForm.reset();
                 document.getElementById('editor').innerHTML = '';
-                fileNameDisplay.textContent = '';
+                if (fileNameDisplay) fileNameDisplay.textContent = '';
                 closeCreateModal();
-                showToast('Note created successfully!');
+
+                // Toast notifikasi dinamis menyesuaikan status dari server
+                showToast(note.status === 'published' ? 'Note published to portfolio!' :
+                    'Draft saved successfully!');
             } catch (err) {
                 console.error(err);
-                showToast('Failed to create note', 'error');
+                showToast('Failed to save note', 'error');
             }
         });
     }
@@ -129,32 +140,74 @@
     const closeEditIcon = document.getElementById('closeEditIcon');
     const editForm = document.getElementById('editNoteForm');
 
-    // AJAX Submit Form Edit
-    async function submitEditForm() {
-        if (!editForm) return;
-        document.getElementById('editHiddenContent').value = document.getElementById('editEditor').innerHTML.trim();
+    // Fungsi untuk menutup modal secara visual (tanpa proses submit)
+    function hideEditModal() {
+        if (!editModal || !editModalContent) return;
+        editModal.classList.add('opacity-0');
+        editModalContent.classList.add('translate-y-4', 'scale-95');
+        editModalContent.classList.remove('translate-y-0', 'scale-100');
+        setTimeout(() => editModal.classList.add('hidden', 'pointer-events-none'), 300);
+    }
 
-        const formData = new FormData(editForm);
-        formData.append('_method', 'PUT');
+    // Pasang event listener untuk tombol close / cancel
+    if (closeEditBtn) closeEditBtn.addEventListener('click', hideEditModal);
+    if (closeEditIcon) closeEditIcon.addEventListener('click', hideEditModal);
+    if (editModal) {
+        editModal.addEventListener('click', e => {
+            if (e.target === editModal) hideEditModal();
+        });
+    }
 
-        try {
-            const res = await fetch(editForm.action, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: formData
-            });
+    // Interseptor Event Submit Form Edit (AJAX yang sesungguhnya)
+    if (editForm) {
+        editForm.addEventListener('submit', async e => {
+            e.preventDefault();
 
-            if (!res.ok) throw new Error('Update failed');
+            // Pindahkan content terbaru dari div contenteditable ke hidden textarea
+            document.getElementById('editHiddenContent').value = document.getElementById('editEditor')
+                .innerHTML.trim();
 
-            const note = await res.json();
-            upsertNoteInDOM(note);
-            showToast('Note updated successfully!');
-        } catch (err) {
-            console.error(err);
-            showToast('Failed to update note', 'error');
-        }
+            const formData = new FormData(editForm);
+            formData.append('_method', 'PUT');
+
+            // ====================================================================
+            // FIX: Amankan dan kunci nilai status terbaru agar pasti terkirim ke Laravel
+            // ====================================================================
+            const currentEditStatus = document.getElementById('editStatusInput')?.value || 'draft';
+            formData.set('status', currentEditStatus);
+            // ====================================================================
+
+            try {
+                const res = await fetch(editForm.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: formData
+                });
+
+                if (!res.ok) {
+                    const errorData = await res.json().catch(() => ({}));
+                    console.error('Validation/Server Errors:', errorData);
+                    throw new Error('Update failed');
+                }
+
+                const note = await res.json();
+
+                // 1. Perbarui tampilan card di DOM secara real-time
+                upsertNoteInDOM(note);
+
+                // 2. TUTUP MODAL setelah sukses tersimpan
+                hideEditModal();
+
+                // 3. Tampilkan Toast Notification sesuai status
+                showToast(note.status === 'published' ? 'Note synced & live on portfolio!' :
+                    'Changes saved as draft!');
+            } catch (err) {
+                console.error(err);
+                showToast('Failed to update note', 'error');
+            }
+        });
     }
 
     // Penutupan Modal Edit yang Fleksibel (save = true/false)
@@ -185,14 +238,12 @@
     // ===== 7. OPEN EDIT MODAL VIA CLICK EVENT =====
     if (notesContainer) {
         notesContainer.addEventListener('click', async e => {
-            // 1. Amankan klik agar tidak bentrok dengan aksi tombol hapus/confirm modal
             if (e.target.closest('.delete-form') ||
                 e.target.closest('button[onclick*="openConfirmModal"]') ||
                 e.target.closest('#confirmModal')) {
                 return;
             }
 
-            // 2. Cari target card berdasarkan class .note-card
             const noteCard = e.target.closest('.note-card');
             if (!noteCard) return;
 
@@ -209,24 +260,13 @@
 
                 const editTitleEl = document.getElementById('editTitle');
                 const editEditorEl = document.getElementById('editEditor');
-                const editFileNameDisplay = document.getElementById('editFileName');
+                const editStatusInput = document.getElementById('editStatusInput');
 
-                // PERBAIKAN: Pastikan menggunakan penulisan properti objek data yang tepat dari backend
-                if (editTitleEl) {
-                    editTitleEl.value = note.title || '';
-                }
+                if (editTitleEl) editTitleEl.value = note.title || '';
+                if (editEditorEl) editEditorEl.innerHTML = note.content || '';
+                if (editStatusInput) editStatusInput.value = note.status || 'draft';
+                if (editFileNameDisplay) editFileNameDisplay.textContent = '';
 
-                // Isi konten ke dalam editor rich text
-                if (editEditorEl) {
-                    editEditorEl.innerHTML = note.content || '';
-                }
-
-                // Reset indikator nama file gambar baru saat modal pertama kali terbuka
-                if (editFileNameDisplay) {
-                    editFileNameDisplay.textContent = '';
-                }
-
-                // 3. Tampilkan modal edit ke permukaan screen dengan animasi smooth
                 if (editModal && editModalContent) {
                     editModal.classList.remove('hidden', 'pointer-events-none');
                     setTimeout(() => {
@@ -308,7 +348,6 @@
         const cardDate = note.updated_at ? new Date(note.updated_at) : new Date();
         const timestamp = cardDate.getTime();
 
-        // 1. Ambil semua kartu yang saat ini ada di layar, simpan ke dalam array objek sementara
         const allCardsData = Array.from(notesContainer.querySelectorAll('.note-card')).map(card => {
             return {
                 id: card.dataset.id,
@@ -317,7 +356,6 @@
             };
         });
 
-        // 2. Format ulang tanggal untuk tampilan teks pada card baru
         const dateText = cardDate.toLocaleDateString('en-GB', {
             day: '2-digit',
             month: 'short'
@@ -327,25 +365,33 @@
             minute: '2-digit'
         });
 
-        // 3. Siapkan string template HTML untuk note baru/yang baru saja di-update
+        // Tentukan template badge status publikasi secara dinamis
+        const statusBadgeHtml = note.status === 'published' ?
+            `<span class="px-2 py-0.5 text-[10px] font-semibold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/50 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 rounded-md"><i class="mr-1 fa-solid fa-globe"></i>Published</span>` :
+            `<span class="px-2 py-0.5 text-[10px] font-semibold text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 rounded-md"><i class="mr-1 fa-solid fa-file-lines"></i>Draft</span>`;
+
+        // Siapkan string template HTML dengan pembaruan variabel field 'images'
         const newNoteHtml = `
 <div class="relative note-card flex flex-col justify-between p-6 transition-all duration-300 bg-white border cursor-pointer group dark:bg-slate-900 border-slate-200/60 dark:border-slate-800/60 rounded-2xl hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-xl hover:shadow-slate-100 dark:hover:shadow-none hover:-translate-y-0.5"
     data-id="${note.id}" data-timestamp="${timestamp}" data-title="${note.title.toLowerCase()}" data-date="${cardDate.toISOString().split('T')[0]}">
 
-    <form action="/content/${note.id}" method="POST" class="absolute z-10 transition-all duration-200 opacity-0 top-4 right-4 group-hover:opacity-100 delete-form">
-        <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]')?.content || ''}">
-        <input type="hidden" name="_method" value="DELETE">
-        <button type="button"
-            class="flex items-center justify-center w-8 h-8 transition-all bg-white border rounded-lg shadow-sm text-slate-400 hover:text-red-500 dark:bg-slate-800 dark:border-slate-700 hover:shadow"
-            onclick="openConfirmModal(event, this)">
-            <i class="text-xs fa-solid fa-trash-can"></i>
-        </button>
-    </form>
+    <div class="absolute z-10 flex items-center space-x-2 top-4 right-4">
+        ${statusBadgeHtml}
+        <form action="/content/${note.id}" method="POST" class="transition-all duration-200 opacity-0 group-hover:opacity-100 delete-form">
+            <input type="hidden" name="_token" value="${document.querySelector('meta[name="csrf-token"]')?.content || ''}">
+            <input type="hidden" name="_method" value="DELETE">
+            <button type="button"
+                class="flex items-center justify-center w-8 h-8 transition-all bg-white border rounded-lg shadow-sm text-slate-400 hover:text-red-500 dark:bg-slate-800 dark:border-slate-700 hover:shadow"
+                onclick="openConfirmModal(event, this)">
+                <i class="text-xs fa-solid fa-trash-can"></i>
+            </button>
+        </form>
+    </div>
 
-    <div>
-        ${note.image ? `
+    <div class="mt-2">
+        ${note.images ? `
             <div class="w-full mb-4 overflow-hidden border h-44 rounded-xl border-slate-100 dark:border-slate-800">
-                <img src="/storage/${note.image}" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105">
+                <img src="/storage/${note.images}" class="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105">
             </div>
         ` : ''}
 
@@ -369,15 +415,12 @@
     </div>
 </div>`;
 
-        // 4. Cari tahu apakah catatan ini memperbarui data lama atau membuat data baru
         const existingIndex = allCardsData.findIndex(c => String(c.id) === String(note.id));
 
         if (existingIndex !== -1) {
-            // Jika update: Perbarui timestamp dan isi HTML data lama tersebut
             allCardsData[existingIndex].timestamp = timestamp;
             allCardsData[existingIndex].html = newNoteHtml;
         } else {
-            // Jika create baru: Masukkan data objek baru ke dalam array list data
             allCardsData.push({
                 id: note.id,
                 timestamp: timestamp,
@@ -385,13 +428,11 @@
             });
         }
 
-        // 5. Jalankan logika pengurutan array berdasarkan dropdown filter aktif saat ini
         const currentSort = document.getElementById('sortSelect')?.value || 'desc';
         allCardsData.sort((a, b) => {
             return currentSort === 'desc' ? (b.timestamp - a.timestamp) : (a.timestamp - b.timestamp);
         });
 
-        // 6. Kosongkan container notes sementara, lalu render ulang tumpukan array yang sudah terurut rapi
         notesContainer.innerHTML = '';
         allCardsData.forEach(cardObj => {
             notesContainer.insertAdjacentHTML('beforeend', cardObj.html);
@@ -416,7 +457,7 @@
     // Dark Mode LocalStorage Engine
     const toggle = document.getElementById('themeToggle');
     const icon = document.getElementById('themeIcon');
-    const html = document.documentElement; // Mengontrol class level root html
+    const html = document.documentElement;
 
     function syncThemeIcon() {
         if (html.classList.contains('dark')) {
@@ -426,7 +467,6 @@
         }
     }
 
-    // Jalankan sinkronisasi ikon awal saat halaman dibuka
     syncThemeIcon();
 
     if (toggle) {

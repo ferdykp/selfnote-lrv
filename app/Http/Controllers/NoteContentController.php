@@ -25,26 +25,20 @@ class NoteContentController extends Controller
             $query->whereDate('date', $request->date);
         }
 
-        // AMAN: Tangkap parameter sort ('desc' atau 'asc')
         $sort = $request->get('sort', 'desc');
-
-        // PERBAIKAN: Urutkan berdasarkan updated_at agar presisi hingga detik jam pembaruan
         $contents = $query->orderBy('updated_at', $sort)->get();
 
-        // Partial view untuk AJAX
         if ($request->ajax()) {
-            // TIPS: Pastikan Anda hanya merender partial container-nya saja jika menggunakan AJAX, 
-            // namun jika merender view index penuh, kode di bawah ini sudah cukup.
             return view('content.index', compact('contents'))->render();
         }
 
         return view('content.index', compact('contents'));
     }
+
     // ===== GET SINGLE NOTE =====
     public function show(NoteContent $content)
     {
-        // Render Markdown ke HTML saat ditampilkan via API
-        $content->content = Str::markdown($content->content);
+        // Jangan di-markdown dulu di sini agar saat diedit tag aslinya tidak rusak di contenteditable
         return response()->json($content);
     }
 
@@ -55,27 +49,23 @@ class NoteContentController extends Controller
             'title'   => 'required|string',
             'content' => 'required|string',
             'image'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'status'  => 'required|in:draft,published', // Validasi status enum
         ]);
 
-        // Upload gambar jika ada
+        // Seleraskan dengan nama kolom database baru: 'images'
         if ($request->hasFile('image')) {
-            $validated['image'] = $request->file('image')->store('notes', 'public');
+            $validated['images'] = $request->file('image')->store('notes', 'public');
         }
 
         $validated['date'] = now()->toDateString();
 
-        // Simpan note ke database
         $note = NoteContent::create($validated);
 
-        // 🔥 Render Markdown ke HTML sebelum dikirim via AJAX
-        $note->content = Str::markdown($note->content);
-
-        // Jika AJAX, kembalikan JSON agar frontend langsung tampil bold, dll.
         if ($request->ajax()) {
             return response()->json($note);
         }
 
-        return redirect()->route('content.index')->with('success', 'Note created successfully!');
+        return redirect()->route('content.index')->with('success', 'Note saved successfully!');
     }
 
     // ===== UPDATE NOTE =====
@@ -87,24 +77,19 @@ class NoteContentController extends Controller
             'title'   => 'required|string',
             'content' => 'required|string',
             'image'   => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'status'  => 'required|in:draft,published', // Validasi status enum
         ]);
 
-        // Ganti gambar jika ada upload baru
         if ($request->hasFile('image')) {
-            if ($noteContent->image && Storage::disk('public')->exists($noteContent->image)) {
-                Storage::disk('public')->delete($noteContent->image);
+            if ($noteContent->images && Storage::disk('public')->exists($noteContent->images)) {
+                Storage::disk('public')->delete($noteContent->images);
             }
-            $validated['image'] = $request->file('image')->store('notes', 'public');
-        } else {
-            $validated['image'] = $noteContent->image;
+            $validated['images'] = $request->file('image')->store('notes', 'public');
         }
 
-        $validated['date'] = now()->toDateTimeString();
+        $validated['date'] = now()->toDateString();
 
         $noteContent->update($validated);
-
-        // 🔥 Render Markdown ke HTML sebelum dikirim via AJAX
-        $noteContent->content = Str::markdown($noteContent->content);
 
         if ($request->ajax()) {
             return response()->json($noteContent);
@@ -113,34 +98,28 @@ class NoteContentController extends Controller
         return redirect()->route('content.index')->with('success', 'Note updated successfully!');
     }
 
-    // ===== DELETE NOTE (Soft Delete) =====
+    // ===== SOFT DELETE, TRASH, RESTORE, FORCE DELETE (Tetap Sama) =====
     public function destroy($id)
     {
-        $note = NoteContent::findOrFail($id);
-        $note->delete(); // Soft delete
+        NoteContent::findOrFail($id)->delete();
         return redirect()->back()->with('status', 'Catatan dipindahkan ke Sampah.');
     }
 
-    // ===== TRASH VIEW =====
     public function trash()
     {
         $notes = NoteContent::onlyTrashed()->get();
         return view('content.trash', compact('notes'));
     }
 
-    // ===== RESTORE NOTE =====
     public function restore($id)
     {
-        $note = NoteContent::onlyTrashed()->findOrFail($id);
-        $note->restore();
+        NoteContent::onlyTrashed()->findOrFail($id)->restore();
         return redirect()->route('content.trash')->with('status', 'Catatan berhasil dipulihkan.');
     }
 
-    // ===== FORCE DELETE =====
     public function forceDelete($id)
     {
-        $note = NoteContent::onlyTrashed()->findOrFail($id);
-        $note->forceDelete();
+        NoteContent::onlyTrashed()->findOrFail($id)->forceDelete();
         return redirect()->route('content.trash')->with('status', 'Catatan dihapus permanen.');
     }
 }
