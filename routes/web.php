@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [NoteContentController::class, 'index'])->name('home');
 Route::resource('content', NoteContentController::class);
-Route::get('/content/{id}', [NoteContentController::class, 'show'])->name('content.show');
+// Route::get('/content/{id}', [NoteContentController::class, 'show'])->name('content.show');
 // Route::post('/content/{id}/update', [NoteContentController::class, 'update'])->name('content.update');
 
 Route::get('/trash', [NoteContentController::class, 'trash'])->name('content.trash');
