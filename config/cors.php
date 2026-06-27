@@ -20,7 +20,11 @@ return [
     'allowed_methods' => ['*'],
 
     // 'allowed_origins' => ['*'],
-    'allowed_origins' => ['http://localhost:3000'], // Sesuaikan dengan port Next.js Anda
+    'allowed_origins' => [
+        'http://localhost:3000',
+        'https://fdevsite.cloud',
+        'https://www.fdevsite.cloud'
+    ], // Sesuaikan dengan port Next.js Anda
 
     'allowed_origins_patterns' => [],
 
