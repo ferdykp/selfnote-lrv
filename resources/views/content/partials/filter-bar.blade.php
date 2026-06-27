@@ -32,9 +32,13 @@
         </button>
 
         {{-- Create Button --}}
-        <button id="openModalBtn"
+        {{-- <button id="openModalBtn"
             class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white transition-all bg-indigo-600 rounded-lg hover:bg-indigo-500 shadow-sm focus:outline-none shadow-indigo-600/10">
             <i class="text-[10px] fa-solid fa-plus"></i> New Note
-        </button>
+        </button> --}}
+        <a href="{{ route('content.create') }}"
+            class="inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white transition-all bg-indigo-600 rounded-lg hover:bg-indigo-500 shadow-sm focus:outline-none shadow-indigo-600/10">
+            <i class="text-[10px] fa-solid fa-plus"></i> New Note
+        </a>
     </div>
 </div>

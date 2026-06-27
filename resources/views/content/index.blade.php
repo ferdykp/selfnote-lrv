@@ -23,8 +23,8 @@
         </div>
 
         {{-- Modals --}}
-        @include('content.partials.create-modal')
-        @include('content.partials.edit-modal')
+        {{-- @include('content.partials.create-modal')
+        @include('content.partials.edit-modal') --}}
         @include('content.partials.confirm-modal')
     </section>
 @endsection

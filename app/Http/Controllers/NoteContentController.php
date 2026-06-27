@@ -35,6 +35,11 @@ class NoteContentController extends Controller
         return view('content.index', compact('contents'));
     }
 
+    public function create()
+    {
+        return view('content.create');
+    }
+
     // ===== GET SINGLE NOTE =====
     public function show(NoteContent $content)
     {
@@ -66,6 +71,12 @@ class NoteContentController extends Controller
         }
 
         return redirect()->route('content.index')->with('success', 'Note saved successfully!');
+    }
+
+    public function edit($id)
+    {
+        $content = NoteContent::findOrFail($id);
+        return view('content.edit', compact('content'));
     }
 
     // ===== UPDATE NOTE =====

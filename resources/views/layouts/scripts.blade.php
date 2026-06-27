@@ -1,5 +1,5 @@
 {{-- SCRIPT UTAMA APLIKASI --}}
-<script>
+{{-- <script>
     const notesContainer = document.getElementById('notesContainer');
 
     // ===== 1. TEXT EDITOR TOOLBAR (RICH TEXT) =====
@@ -338,10 +338,10 @@
     @if (session('error'))
         showToast("{{ session('error') }}", 'error');
     @endif
-</script>
+</script> --}}
 
 {{-- SCRIPT METADATA DOM SINKRONISASI --}}
-<script>
+{{-- <script>
     function upsertNoteInDOM(note) {
         if (!notesContainer) return;
 
@@ -438,11 +438,159 @@
             notesContainer.insertAdjacentHTML('beforeend', cardObj.html);
         });
     }
+</script> --}}
+
+{{-- SECURITY PASTE & THEME SYSTEM --}}
+{{-- <script>
+    // Format Plaintext saat Paste di Editor Rich Text
+    document.addEventListener('paste', function(e) {
+        const editor = document.querySelector('#editor');
+        const editEditor = document.querySelector('#editEditor');
+        if ((editor && editor.contains(document.activeElement)) || (editEditor && editEditor.contains(document
+                .activeElement))) {
+            e.preventDefault();
+            const text = e.clipboardData.getData('text/plain');
+            document.execCommand('insertText', false, text);
+        }
+    });
+
+    // Dark Mode LocalStorage Engine
+    const toggle = document.getElementById('themeToggle');
+    const icon = document.getElementById('themeIcon');
+    const html = document.documentElement;
+
+    function syncThemeIcon() {
+        if (html.classList.contains('dark')) {
+            if (icon) icon.classList.replace('fa-moon', 'fa-sun');
+        } else {
+            if (icon) icon.classList.replace('fa-sun', 'fa-moon');
+        }
+    }
+
+    syncThemeIcon();
+
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            syncThemeIcon();
+        });
+    }
+</script> --}}
+
+{{-- SCRIPT UTAMA APLIKASI --}}
+<script>
+    const notesContainer = document.getElementById('notesContainer');
+
+    // ===== 1. PREMIUM TOAST NOTIFICATION =====
+    function showToast(message, type = 'success') {
+        const toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) return;
+
+        const toast = document.createElement('div');
+        toast.className =
+            `toast ${type === 'success' ? 'bg-emerald-500/90 border border-emerald-400/20' : 'bg-rose-500/90 border border-rose-400/20'} text-white shadow-xl rounded-xl px-4 py-3 flex items-center space-x-3 transform translate-y-[-20px] opacity-0 transition-all duration-500 ease-out backdrop-blur-md`;
+        toast.innerHTML =
+            `<i class="text-lg ${type === 'success' ? 'fa-solid fa-circle-check' : 'fa-solid fa-circle-xmark'}"></i><span class="text-xs font-medium">${message}</span>`;
+
+        toastContainer.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.remove('translate-y-[-20px]', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-[-10px]', 'opacity-0');
+                setTimeout(() => toast.remove(), 500);
+            }, 2500);
+        }, 10);
+    }
+
+    // ===== 2. REDIRECT KE HALAMAN EDIT SAAT KARTU DIKLIK =====
+    if (notesContainer) {
+        notesContainer.addEventListener('click', e => {
+            // Amankan tombol hapus/fitur confirm modal bawaan index agar tidak ikut terpicu redirect
+            if (e.target.closest('.delete-form') ||
+                e.target.closest('button[onclick*="openConfirmModal"]') ||
+                e.target.closest('#confirmModal')) {
+                return;
+            }
+
+            const noteCard = e.target.closest('.note-card');
+            if (!noteCard) return;
+
+            const id = noteCard.dataset.id;
+            if (id) {
+                // Arahkan user ke halaman edit spesifik
+                window.location.href = `/content/${id}/edit`;
+            }
+        });
+    }
+
+    // ===== 3. AJAX SEARCH / FILTER / SORT SYSTEM (Tetap Dipertahankan) =====
+    const searchInput = document.getElementById('searchInput');
+    const dateFilter = document.getElementById('dateFilter');
+    const sortSelect = document.getElementById('sortSelect');
+    const resetBtn = document.getElementById('resetFilterBtn');
+
+    async function fetchFilteredNotes() {
+        if (!notesContainer) return;
+        const params = new URLSearchParams({
+            search: searchInput?.value.trim() || '',
+            date: dateFilter?.value || '',
+            sort: sortSelect?.value || 'desc'
+        });
+
+        try {
+            const res = await fetch(`/content?${params.toString()}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            const html = await res.text();
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            const newNotes = tempDiv.querySelector('#notesContainer')?.innerHTML;
+            if (newNotes) notesContainer.innerHTML = newNotes;
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    let searchTimeout;
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(fetchFilteredNotes, 400);
+        });
+    }
+    if (dateFilter) dateFilter.addEventListener('change', fetchFilteredNotes);
+    if (sortSelect) sortSelect.addEventListener('change', fetchFilteredNotes);
+    if (resetBtn) {
+        resetBtn.addEventListener('click', () => {
+            if (searchInput) searchInput.value = '';
+            if (dateFilter) dateFilter.value = '';
+            if (sortSelect) sortSelect.value = 'desc';
+            fetchFilteredNotes();
+        });
+    }
+
+    // ===== 4. SYSTEM FLASH MESSAGES =====
+    @if (session('success'))
+        showToast("{{ session('success') }}", 'success');
+    @endif
+    @if (session('status'))
+        showToast("{{ session('status') }}", 'success');
+    @endif
+    @if (session('error'))
+        showToast("{{ session('error') }}", 'error');
+    @endif
 </script>
 
 {{-- SECURITY PASTE & THEME SYSTEM --}}
 <script>
-    // Format Plaintext saat Paste di Editor Rich Text
+    // Format Plaintext saat Paste di Rich Text (Create & Edit page)
     document.addEventListener('paste', function(e) {
         const editor = document.querySelector('#editor');
         const editEditor = document.querySelector('#editEditor');
