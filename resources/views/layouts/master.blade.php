@@ -21,12 +21,11 @@
 </head>
 <body class="app-body">
     <div class="app-shell">
-        <div id="sidebarOverlay" class="sidebar-overlay" hidden></div>
+        
         @include('layouts.aside')
         <div class="app-workspace">
             <header class="workspace-header">
                 <div class="header-left">
-                    <button type="button" id="mobileMenuToggle" class="icon-button mobile-menu" aria-label="Buka navigasi" aria-controls="appSidebar" aria-expanded="false"><i class="fa-solid fa-bars-staggered"></i></button>
                     <div class="header-breadcrumb"><span>Workspace</span><i class="fa-solid fa-chevron-right"></i><strong>@yield('page_label', 'Catatan')</strong></div>
                 </div>
                 <div class="header-right"><span id="pwaConnection" role="status" class="pwa-connection" aria-live="polite">Online</span><button type="button" id="pwaInstall" class="pwa-install" hidden>Install App</button><span class="header-private"><i class="fa-solid fa-pen-nib"></i> Ruang menulismu</span><span class="header-avatar" aria-hidden="true">S</span></div>
@@ -34,6 +33,7 @@
             <main id="mainContent" class="workspace-main" tabindex="-1">@yield('content')</main>
         </div>
     </div>
+    @include('layouts.mobile-nav')
     @include('layouts.scripts')
     @stack('scripts')
 </body>
