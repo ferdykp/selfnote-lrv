@@ -1,64 +1,40 @@
 <!DOCTYPE html>
-<html lang="en" class="h-full">
-
+<html lang="id" class="h-full">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    @include('layouts.head')
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#146b64">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="manifest" href="{{ asset('manifest.webmanifest') }}">
+    <link rel="apple-touch-icon" href="{{ asset('icon/pwa-192.png') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>@yield('title', 'SelfNote — Ruang untuk setiap ide')</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="icon" href="{{ asset('icon/logo-tab-bg.png') }}">
+    <script>try {const t=localStorage.getItem('theme');document.documentElement.classList.toggle('dark',t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches));}catch(e){}</script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     @stack('head')
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-    </style>
-    {{-- Deteksi Tema Instan Sebelum Render Mencegah Efek Putih Berkedip --}}
-    <script>
-        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia(
-                '(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-    </script>
 </head>
-
-<body
-    class="h-full overflow-hidden transition-colors duration-300 bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-50">
-
-    <div class="flex h-screen overflow-hidden">
-        {{-- Sidebar --}}
+<body class="app-body">
+    <div class="app-shell">
+        <div id="sidebarOverlay" class="sidebar-overlay" hidden></div>
         @include('layouts.aside')
-
-        {{-- Main Area Workspace --}}
-        <div class="flex flex-col flex-1 min-w-0 pl-20 transition-all duration-300">
-
-            {{-- Top Global Header --}}
-            <header
-                class="flex items-center justify-between px-8 transition-colors duration-300 border-b h-14 bg-white/80 border-slate-200/80 dark:border-slate-900 dark:bg-slate-950/50 backdrop-blur-md">
-                <div class="flex items-center space-x-3">
-                    <span
-                        class="text-[11px] font-medium px-2.5 py-0.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-400 dark:border-indigo-900/50 tracking-wide">
-                        Personal Workspace
-                    </span>
+        <div class="app-workspace">
+            <header class="workspace-header">
+                <div class="header-left">
+                    <button type="button" id="mobileMenuToggle" class="icon-button mobile-menu" aria-label="Buka navigasi" aria-controls="appSidebar" aria-expanded="false"><i class="fa-solid fa-bars-staggered"></i></button>
+                    <div class="header-breadcrumb"><span>Workspace</span><i class="fa-solid fa-chevron-right"></i><strong>@yield('page_label', 'Catatan')</strong></div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <div class="rounded-full shadow-sm w-7 h-7 bg-gradient-to-tr from-indigo-500 to-purple-500"></div>
-                </div>
+                <div class="header-right"><span id="pwaConnection" role="status" class="pwa-connection" aria-live="polite">Online</span><button type="button" id="pwaInstall" class="pwa-install" hidden>Install App</button><span class="header-private"><i class="fa-solid fa-pen-nib"></i> Ruang menulismu</span><span class="header-avatar" aria-hidden="true">S</span></div>
             </header>
-
-            {{-- Main Content Window --}}
-            <main
-                class="flex-1 overflow-y-auto transition-colors duration-300 bg-slate-100/60 dark:bg-slate-950/40 focus:outline-none">
-                @yield('content')
-            </main>
+            <main id="mainContent" class="workspace-main" tabindex="-1">@yield('content')</main>
         </div>
     </div>
-
     @include('layouts.scripts')
     @stack('scripts')
 </body>
-
 </html>

@@ -1,0 +1,39 @@
+{
+  "id": "/",
+  "name": "SelfNote — Ruang untuk ide",
+  "short_name": "SelfNote",
+  "description": "Ruang pribadi untuk mencatat ide dan merapikan pikiran.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f6f8f3",
+  "theme_color": "#146b64",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/icon/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Catatan baru",
+      "short_name": "Catat",
+      "url": "/content/create",
+      "icons": [
+        {
+          "src": "/icon/pwa-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
+}

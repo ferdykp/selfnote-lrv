@@ -1,8 +1,8 @@
 @extends('layouts.master')
 
 @section('content')
-    <section class="min-h-screen p-6 transition-colors duration-300 bg-slate-50/50 dark:bg-slate-950/20">
-        <div class="mx-auto max-w-7xl">
+    <section class="writing-page">
+        <div class="writing-width">
 
             <div class="flex items-center justify-between mb-6">
                 <div class="flex items-center space-x-3">
@@ -10,12 +10,12 @@
                         class="p-2 transition bg-white border rounded-xl dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white">
                         <i class="text-sm fa-solid fa-arrow-left"></i>
                     </a>
-                    <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100">Edit Note</h2>
+                    <h2 class="text-xl font-bold text-slate-800 dark:text-slate-100">Edit catatan</h2>
                 </div>
             </div>
 
             <div
-                class="overflow-hidden bg-white border shadow-sm dark:bg-slate-900 rounded-2xl border-slate-200/80 dark:border-slate-800/80">
+                class="writing-surface">
                 <form id="editNoteForm" action="{{ route('content.update', $content->id) }}" method="POST"
                     enctype="multipart/form-data">
                     @csrf
@@ -23,112 +23,70 @@
 
                     <input type="hidden" name="status" id="editStatusInput" value="{{ $content->status }}">
 
-                    <div class="p-8 space-y-6">
+                    <div class="writing-content">
+<div data-autosave-status role="status" aria-live="polite" class="text-xs text-indigo-600 dark:text-indigo-300">Autosave lokal aktif</div>
                         {{-- Title --}}
-                        <input type="text" name="title" id="editTitle" value="{{ $content->title }}"
-                            placeholder="Untitled Note" autocomplete="off"
+                        <input type="text" name="title" data-note-title="1" id="editTitle" value="{{ $content->title }}"
+                            placeholder="Beri judul catatan…" autocomplete="off"
                             class="w-full px-0 py-1 text-3xl font-bold bg-transparent border-0 border-b border-transparent focus:border-slate-100 dark:focus:border-slate-800 focus:ring-0 focus:outline-none text-slate-800 dark:text-white">
 
-                        <div
-                            class="sticky top-4 z-20 flex flex-wrap items-center gap-1 p-1.5 border rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 shadow-sm">
-
-                            {{-- Text Style Group --}}
-                            <button type="button" data-cmd="bold"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Bold (Ctrl+B)"><i class="text-xs fa-solid fa-bold"></i></button>
-                            <button type="button" data-cmd="italic"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Italic (Ctrl+I)"><i class="text-xs fa-solid fa-italic"></i></button>
-                            <button type="button" data-cmd="underline"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Underline (Ctrl+U)"><i class="text-xs fa-solid fa-underline"></i></button>
-                            <button type="button" data-cmd="strikeThrough"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Strikethrough"><i class="text-xs fa-solid fa-strikethrough"></i></button>
-
-                            <div class="w-px h-4 mx-1 bg-slate-200 dark:bg-slate-800"></div>
-
-                            {{-- Headings & Paragraph Selector --}}
-                            {{-- <button type="button" data-cmd="formatBlock" data-val="h1"
-                                class="h-8 px-2 text-xs font-semibold transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Heading 1">H1</button>
-                            <button type="button" data-cmd="formatBlock" data-val="h2"
-                                class="h-8 px-2 text-xs font-semibold transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Heading 2">H2</button>
-                            <button type="button" data-cmd="formatBlock" data-val="p"
-                                class="h-8 px-2 text-xs font-semibold transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Paragraph">Text</button>
-
-                            <div class="w-px h-4 mx-1 bg-slate-200 dark:bg-slate-800"></div> --}}
-
-                            {{-- Alignments --}}
-                            <button type="button" data-cmd="justifyLeft"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Align Left"><i class="text-xs fa-solid fa-align-left"></i></button>
-                            <button type="button" data-cmd="justifyCenter"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Align Center"><i class="text-xs fa-solid fa-align-center"></i></button>
-                            <button type="button" data-cmd="justifyRight"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Align Right"><i class="text-xs fa-solid fa-align-right"></i></button>
-
-                            <div class="w-px h-4 mx-1 bg-slate-200 dark:bg-slate-800"></div>
-
-                            {{-- Lists & Blockquote --}}
-                            {{-- <button type="button" data-cmd="insertUnorderedList"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Bullet List"><i class="text-xs fa-solid fa-list-ul"></i></button>
-                            <button type="button" data-cmd="insertOrderedList"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Numbered List"><i class="text-xs fa-solid fa-list-ol"></i></button>
-                            <button type="button" data-cmd="formatBlock" data-val="blockquote"
-                                class="w-8 h-8 transition rounded-lg editor-btn hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Quote"><i class="text-xs fa-solid fa-quote-left"></i></button>
-
-                            <div class="w-px h-4 mx-1 bg-slate-200 dark:bg-slate-800"></div> --}}
-
-                            {{-- Links & Utilities --}}
-                            <button type="button" id="linkBtn"
-                                class="w-8 h-8 transition rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white"
-                                title="Insert Link"><i class="text-xs fa-solid fa-link"></i></button>
-                            <button type="button" data-cmd="removeFormat"
-                                class="w-8 h-8 transition rounded-lg text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/30"
-                                title="Clear Formatting"><i class="text-xs fa-solid fa-eraser"></i></button>
-
-                            <div class="w-px h-4 mx-1 bg-slate-200 dark:bg-slate-800"></div>
-
-                            {{-- Cover Image --}}
-                            <button type="button" id="uploadIconBtn"
-                                class="flex items-center gap-1 px-2.5 h-8 text-xs font-medium rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-white transition border border-transparent hover:border-slate-200/60 dark:hover:border-slate-800"
-                                title="Attach Cover Image">
-                                <i class="text-indigo-500 fa-solid fa-image"></i> <span>Cover Image</span>
-                            </button>
-                            <input type="file" id="imageInput" name="image" hidden accept="image/*">
-                        </div>
-
+                        <div class="writing-toolbar" role="toolbar" aria-label="Alat pemformatan catatan">
+  <div class="toolbar-group" aria-label="Gaya teks">
+    <button type="button" data-cmd="bold" title="Tebal (⌘/Ctrl+B)" aria-label="Tebal"><i class="fa-solid fa-bold"></i></button>
+    <button type="button" data-cmd="italic" title="Miring (⌘/Ctrl+I)" aria-label="Miring"><i class="fa-solid fa-italic"></i></button>
+    <button type="button" data-cmd="underline" title="Garis bawah (⌘/Ctrl+U)" aria-label="Garis bawah"><i class="fa-solid fa-underline"></i></button>
+    <button type="button" data-cmd="strike" title="Coret" aria-label="Coret"><i class="fa-solid fa-strikethrough"></i></button>
+    <button type="button" data-cmd="code" title="Inline code" aria-label="Inline code"><i class="fa-solid fa-code"></i></button>
+  </div><span class="toolbar-separator" aria-hidden="true"></span>
+  <div class="toolbar-group" aria-label="Struktur">
+    <button type="button" data-cmd="h1" title="Judul besar" aria-label="Heading 1">H1</button>
+    <button type="button" data-cmd="h2" title="Subjudul" aria-label="Heading 2">H2</button>
+    <button type="button" data-cmd="h3" title="Heading 3" aria-label="Heading 3">H3</button>
+    <button type="button" data-cmd="paragraph" title="Paragraf" aria-label="Paragraf">¶</button>
+    <button type="button" data-cmd="blockquote" title="Kutipan" aria-label="Kutipan"><i class="fa-solid fa-quote-left"></i></button>
+  </div><span class="toolbar-separator" aria-hidden="true"></span>
+  <div class="toolbar-group" aria-label="Daftar">
+    <button type="button" data-cmd="insertUnorderedList" title="Daftar bullet" aria-label="Daftar bullet"><i class="fa-solid fa-list-ul"></i></button>
+    <button type="button" data-cmd="insertOrderedList" title="Daftar angka" aria-label="Daftar angka"><i class="fa-solid fa-list-ol"></i></button>
+  </div><span class="toolbar-separator" aria-hidden="true"></span>
+  <div class="toolbar-group" aria-label="Perataan">
+    <button type="button" data-cmd="align-left" title="Rata kiri" aria-label="Rata kiri"><i class="fa-solid fa-align-left"></i></button>
+    <button type="button" data-cmd="align-center" title="Rata tengah" aria-label="Rata tengah"><i class="fa-solid fa-align-center"></i></button>
+    <button type="button" data-cmd="align-right" title="Rata kanan" aria-label="Rata kanan"><i class="fa-solid fa-align-right"></i></button>
+  </div><span class="toolbar-separator" aria-hidden="true"></span>
+  <div class="toolbar-group" aria-label="Sisipkan dan alat">
+    <button type="button" data-editor-link title="Sisipkan tautan" aria-label="Sisipkan tautan"><i class="fa-solid fa-link"></i></button>
+    <button type="button" data-cover-trigger title="Pilih cover" aria-label="Pilih cover"><i class="fa-regular fa-image"></i></button>
+    <button type="button" data-cmd="clear" title="Hapus format pada seleksi" aria-label="Hapus format"><i class="fa-solid fa-eraser"></i></button>
+  </div>
+  <input type="file" name="image" hidden accept="image/jpeg,image/png" />
+</div>
+<p class="editor-hint"><i class="fa-regular fa-keyboard"></i> Tips: <kbd>**tebal**</kbd> <kbd>*miring*</kbd> <kbd>~~coret~~</kbd> <kbd>`kode`</kbd> · di awal baris: <kbd>#</kbd> <kbd>##</kbd> <kbd>-</kbd> <kbd>1.</kbd> <kbd>&gt;</kbd></p>
+<label class="block text-sm text-slate-600 dark:text-slate-300">Tag (pisahkan dengan koma)<input name="tags" value="{{ old('tags', $content->tags) }}" maxlength="500" placeholder="ide, kerja, personal" class="mt-2 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-transparent"></label>
                         {{-- Editor Area --}}
                         <div id="editEditor" contenteditable="true"
                             class="w-full min-h-[400px] focus:outline-none bg-transparent text-base leading-relaxed text-slate-700 dark:text-slate-300 break-words prose dark:prose-invert">
-                            {!! $content->content !!}
+                            {!! \App\Support\NoteHtml::clean($content->content) !!}
                         </div>
 
                         <textarea name="content" id="editHiddenContent" hidden></textarea>
                     </div>
 
+                    <div class="px-8 pb-5 flex flex-wrap gap-3 text-sm"><a class="text-indigo-600 underline" href="{{ route('content.revisions', $content) }}">Riwayat revisi</a><a class="text-indigo-600 underline" href="{{ route('content.export', $content) }}">Ekspor .txt</a></div>
                     {{-- Action buttons --}}
                     <div
                         class="flex justify-end px-8 py-4 space-x-3 border-t bg-slate-50/50 dark:bg-slate-950/30 border-slate-100 dark:border-slate-800/80">
                         <a href="{{ route('content.index') }}"
                             class="px-5 py-2.5 text-sm font-medium transition bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700">Cancel</a>
 
-                        <button type="button" onclick="submitEditForm('draft')"
+                        <button type="button" data-save-status="draft"
                             class="px-5 py-2.5 text-sm font-medium transition border text-slate-700 border-slate-200 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700 dark:hover:bg-slate-700 rounded-xl">
-                            Save as Draft
+                            Simpan draft
                         </button>
 
-                        <button type="button" onclick="submitEditForm('published')"
+                        <button type="button" data-save-status="published"
                             class="px-6 py-2.5 text-sm font-medium text-white transition bg-indigo-600 shadow-lg rounded-xl hover:bg-indigo-700 shadow-indigo-600/10">
-                            Publish & Sync
+                            Tandai selesai
                         </button>
                     </div>
                 </form>
@@ -137,43 +95,3 @@
     </section>
 @endsection
 
-@push('scripts')
-    <script>
-        // Toolbar Handler
-        document.querySelectorAll('[data-cmd]').forEach(btn => {
-            btn.addEventListener('click', function() {
-                document.execCommand(this.dataset.cmd, false, null);
-            });
-        });
-
-        // Edit Image Upload
-        const editUploadIconBtn = document.getElementById('editUploadIconBtn');
-        const editImageInput = document.getElementById('editImageInput');
-        const editFileNameDisplay = document.getElementById('editFileName');
-
-        if (editUploadIconBtn && editImageInput) {
-            editUploadIconBtn.addEventListener('click', () => editImageInput.click());
-            editImageInput.addEventListener('change', e => {
-                if (editFileNameDisplay) {
-                    editFileNameDisplay.textContent = e.target.files[0]?.name || '';
-                }
-            });
-        }
-
-        function submitEditForm(status) {
-            const form = document.getElementById('editNoteForm');
-            const editor = document.getElementById('editEditor');
-            const hiddenContent = document.getElementById('editHiddenContent');
-            const statusInput = document.getElementById('editStatusInput');
-
-            if (editor && hiddenContent) {
-                hiddenContent.value = editor.innerHTML.trim();
-            }
-            if (statusInput) {
-                statusInput.value = status;
-            }
-
-            form.submit();
-        }
-    </script>
-@endpush

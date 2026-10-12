@@ -14,9 +14,12 @@ class NoteContent extends Model
         'content',
         'images',
         'date',
-        'status'
+        'status', 'is_pinned', 'is_favorite', 'tags'
     ];
 
     // Opsi tambahan (tidak wajib, tapi disarankan)
+    protected $casts = ['is_pinned'=>'boolean', 'is_favorite'=>'boolean'];
+    public function revisions(){ return $this->hasMany(NoteRevision::class)->latest(); }
+
     protected $dates = ['deleted_at'];
 }
