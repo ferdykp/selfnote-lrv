@@ -1,15 +1,1159 @@
 <!doctype html>
-<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#6245e8"><title>SelfNote — Offline</title><link rel="icon" href="/icon/pwa-192.png"><style>
-:root{font-family:system-ui,-apple-system,sans-serif;color:#202038;background:#f7f8fc}*{box-sizing:border-box}body{margin:0;padding:24px 16px}.wrap{max-width:680px;margin:30px auto}.brand{display:flex;align-items:center;gap:13px;font-weight:800}.brand img{width:44px;border-radius:12px}h1{font-size:clamp(26px,6vw,38px);letter-spacing:-1px;margin:35px 0 8px}p{line-height:1.65;color:#67697d}.panel{background:white;border:1px solid #e5e4f1;border-radius:20px;padding:clamp(18px,4vw,30px);box-shadow:0 15px 35px #26205d08}label{display:block;margin:15px 0 7px;font-weight:700;font-size:13px}input,textarea{width:100%;padding:15px;border:1px solid #d5d6e6;border-radius:12px;color:#202038;font:inherit;background:#fff}textarea{min-height:170px;resize:vertical}input:focus,textarea:focus{outline:2px solid #6245e8;outline-offset:1px}button,.link{display:inline-block;margin:14px 8px 0 0;border:0;border-radius:11px;background:#6245e8;color:white;font-weight:700;padding:13px 18px;text-decoration:none;cursor:pointer}.secondary{background:#efedfc;color:#4b36b2}.draft{border-top:1px solid #e6e6ef;padding:12px 0}small{color:#626477}#message{min-height:22px}button:focus-visible{outline:3px solid #26205d;outline-offset:2px}</style></head>
-<body><div class="wrap"><div class="brand"><img src="/icon/pwa-192.png" alt=""><span>SelfNote</span></div><h1>Ide tetap mengalir, meski offline.</h1><p>Koneksi internet sedang tidak tersedia. Tulis catatan singkat di sini — akan tersimpan <strong>hanya di perangkat dan browser ini</strong>. Setelah online, buka di editor dan simpan ke database.</p><div class="panel"><form id="quickCapture"><label for="title">Judul</label><input id="title" maxlength="255" required placeholder="Ide baru..."><label for="content">Catatan</label><textarea id="content" required placeholder="Apa yang sedang kamu pikirkan?"></textarea><button type="submit">Simpan di perangkat</button><a class="link secondary" href="/" id="retry">Coba kembali online</a></form><p id="message" role="status" aria-live="polite"></p><h2>Draft offline <span id="count"></span></h2><div id="drafts"></div></div><p><small>Catatan offline dapat hilang jika data browser dihapus. Belum ada sinkronisasi otomatis atau penyimpanan ke server.</small></p></div><script>
-(() => {
-  const KEY='selfnote:offline-drafts:v1';
-  const read=()=>{try{const d=JSON.parse(localStorage.getItem(KEY)||'[]');return Array.isArray(d)?d:[]}catch{return[]}};
-  const write=d=>localStorage.setItem(KEY,JSON.stringify(d));
-  const list=document.getElementById('drafts'),count=document.getElementById('count'),msg=document.getElementById('message');
-  function render(){const drafts=read();count.textContent=`(${drafts.length})`;list.replaceChildren();if(!drafts.length){const p=document.createElement('p');p.textContent='Belum ada draft offline.';list.append(p);return;}
-    for(const d of drafts){const row=document.createElement('div');row.className='draft';const strong=document.createElement('strong');strong.textContent=d.title;const detail=document.createElement('p');detail.textContent=d.content.slice(0,130);const a=document.createElement('a');a.className='link secondary';a.href=`/content/create?offline_draft=${encodeURIComponent(d.id)}`;a.textContent='Buka di editor saat online';row.append(strong,detail,a);list.append(row);}}
-  document.getElementById('quickCapture').addEventListener('submit',e=>{e.preventDefault();const title=document.getElementById('title').value.trim(),content=document.getElementById('content').value.trim();if(!title||!content)return;try{const drafts=read();drafts.unshift({id:String(Date.now())+'-'+Math.random().toString(36).slice(2),title,content,at:Date.now()});write(drafts);e.target.reset();msg.textContent='Draft tersimpan di perangkat ini.';render();}catch{msg.textContent='Tidak bisa menyimpan draft. Cek ruang penyimpanan atau mode privat.';}});
-  render();
-})();
-</script></body></html>
+<html lang="id">
+    <head>
+        <meta charset="UTF-8" />
+        <meta
+            name="viewport"
+            content="width=device-width, initial-scale=1, viewport-fit=cover"
+        />
+        <meta name="theme-color" content="#F6F8F5" />
+        <meta name="color-scheme" content="light" />
+        <title>Quick Capture — SelfNote</title>
+        <link rel="icon" href="/icon/pwa-192.png" />
+
+        <style>
+            :root {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Inter,
+                    sans-serif;
+                color: #172c2b;
+                background: #f6f8f5;
+                font-synthesis: none;
+                -webkit-font-smoothing: antialiased;
+
+                --primary: #146b64;
+                --primary-hover: #10564f;
+                --primary-soft: #e5f1ec;
+                --ink: #172c2b;
+                --muted: #71817c;
+                --border: #dfe8e2;
+                --surface: #ffffff;
+                --background: #f6f8f5;
+                --danger: #b83c43;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html {
+                scroll-behavior: smooth;
+            }
+
+            body {
+                margin: 0;
+                min-width: 280px;
+                min-height: 100vh;
+                min-height: 100dvh;
+            }
+
+            button,
+            input,
+            textarea {
+                font: inherit;
+            }
+
+            button {
+                cursor: pointer;
+            }
+
+            button:disabled {
+                opacity: 0.55;
+                cursor: not-allowed;
+            }
+
+            a {
+                text-decoration: none;
+            }
+
+            :focus-visible {
+                outline: 3px solid #72b7a7;
+                outline-offset: 3px;
+            }
+
+            .app {
+                max-width: 1220px;
+                margin: 0 auto;
+                padding: 30px clamp(16px, 4vw, 48px) 80px;
+            }
+
+            .topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                padding-bottom: 26px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .brand {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                color: var(--ink);
+            }
+
+            .brand-icon {
+                display: grid;
+                place-items: center;
+                width: 44px;
+                height: 44px;
+                border-radius: 14px;
+                background: var(--primary);
+                color: white;
+                font-size: 23px;
+                font-weight: 800;
+            }
+
+            .brand-name {
+                font-size: 19px;
+                font-weight: 800;
+                letter-spacing: -0.8px;
+            }
+
+            .brand-sub {
+                display: block;
+                margin-top: 3px;
+                font-size: 11px;
+                font-weight: 500;
+                color: var(--muted);
+                letter-spacing: 0.3px;
+            }
+
+            .top-actions {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .connection {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 9px 13px;
+                background: #fff1e8;
+                border: 1px solid #f6dac7;
+                color: #9c5329;
+                border-radius: 999px;
+                font-size: 12px;
+                font-weight: 700;
+            }
+
+            .connection.online {
+                background: var(--primary-soft);
+                border-color: #cbe4d7;
+                color: var(--primary);
+            }
+
+            .dot {
+                width: 7px;
+                height: 7px;
+                border-radius: 50%;
+                background: currentColor;
+            }
+
+            .btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 9px;
+                min-height: 44px;
+                padding: 11px 17px;
+                border: 1px solid transparent;
+                border-radius: 12px;
+                font-size: 13px;
+                font-weight: 700;
+                transition:
+                    background 0.2s ease,
+                    border-color 0.2s ease,
+                    transform 0.2s ease;
+            }
+
+            .btn:hover {
+                transform: translateY(-1px);
+            }
+
+            .btn-primary {
+                color: white;
+                background: var(--primary);
+            }
+
+            .btn-primary:hover {
+                background: var(--primary-hover);
+            }
+
+            .btn-soft {
+                color: var(--primary);
+                background: var(--primary-soft);
+            }
+
+            .btn-outline {
+                color: var(--ink);
+                background: white;
+                border-color: var(--border);
+            }
+
+            .btn-danger {
+                color: var(--danger);
+                background: #fff0f0;
+            }
+
+            .btn-small {
+                min-height: 36px;
+                padding: 8px 12px;
+                font-size: 12px;
+            }
+
+            .hero {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                gap: 24px;
+                margin: 45px 0 28px;
+            }
+
+            .eyebrow {
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                margin-bottom: 15px;
+                color: var(--primary);
+                font-size: 11px;
+                font-weight: 800;
+                letter-spacing: 1.5px;
+                text-transform: uppercase;
+            }
+
+            h1 {
+                max-width: 650px;
+                margin: 0;
+                font-size: clamp(32px, 4vw, 54px);
+                letter-spacing: -2px;
+                line-height: 1.12;
+                font-weight: 800;
+            }
+
+            .hero p {
+                max-width: 570px;
+                margin: 15px 0 0;
+                color: var(--muted);
+                font-size: 14px;
+                line-height: 1.8;
+            }
+
+            .hero-deco {
+                flex: 0 0 90px;
+                height: 90px;
+                border-radius: 26px;
+                display: grid;
+                place-items: center;
+                background: #e2f0e9;
+                color: var(--primary);
+                font-size: 48px;
+                transform: rotate(-7deg);
+            }
+
+            .workspace {
+                display: grid;
+                grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+                gap: 22px;
+                align-items: start;
+            }
+
+            .card {
+                min-width: 0;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 22px;
+                box-shadow: 0 8px 32px rgba(23, 44, 43, 0.035);
+            }
+
+            .editor-card {
+                overflow: hidden;
+            }
+
+            .card-head {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 12px;
+                padding: 22px 25px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .card-title {
+                margin: 0;
+                font-size: 17px;
+                font-weight: 800;
+                letter-spacing: -0.5px;
+            }
+
+            .card-subtitle {
+                margin: 6px 0 0;
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.5;
+            }
+
+            .mini-badge {
+                padding: 7px 10px;
+                border-radius: 9px;
+                background: var(--primary-soft);
+                color: var(--primary);
+                font-size: 11px;
+                font-weight: 700;
+            }
+
+            .editor {
+                padding: 25px;
+            }
+
+            .field-label {
+                display: block;
+                margin-bottom: 9px;
+                font-size: 12px;
+                font-weight: 750;
+                color: #354c46;
+            }
+
+            .title-input {
+                display: block;
+                width: 100%;
+                border: 0;
+                outline: none;
+                padding: 4px 0 16px;
+                font-size: clamp(22px, 3vw, 30px);
+                font-weight: 750;
+                letter-spacing: -0.7px;
+                color: var(--ink);
+                background: transparent;
+            }
+
+            .title-input::placeholder,
+            .content-input::placeholder {
+                color: #a2b0a9;
+            }
+
+            .editor-divider {
+                border: 0;
+                height: 1px;
+                background: var(--border);
+                margin: 0 0 20px;
+            }
+
+            .content-input {
+                display: block;
+                width: 100%;
+                min-height: 280px;
+                border: 0;
+                outline: none;
+                resize: vertical;
+                padding: 0;
+                color: var(--ink);
+                background: transparent;
+                font-size: 14px;
+                line-height: 1.9;
+            }
+
+            .editor-footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 12px;
+                padding: 17px 25px;
+                background: #fbfcfa;
+                border-top: 1px solid var(--border);
+            }
+
+            .editor-meta {
+                display: flex;
+                gap: 14px;
+                color: var(--muted);
+                font-size: 11px;
+                font-weight: 600;
+            }
+
+            .editor-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .side-column {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+                gap: 18px;
+            }
+
+            .drafts-card {
+                overflow: hidden;
+            }
+
+            .drafts-list {
+                max-height: 460px;
+                overflow-y: auto;
+                padding: 8px 14px 14px;
+            }
+
+            .draft-item {
+                padding: 15px 11px;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .draft-item:last-child {
+                border-bottom: 0;
+            }
+
+            .draft-name {
+                overflow-wrap: anywhere;
+                margin: 0 0 7px;
+                font-size: 14px;
+                font-weight: 750;
+            }
+
+            .draft-preview {
+                display: -webkit-box;
+                overflow: hidden;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+                margin: 0 0 9px;
+                color: var(--muted);
+                font-size: 12px;
+                line-height: 1.65;
+                overflow-wrap: anywhere;
+            }
+
+            .draft-date {
+                color: #81918b;
+                font-size: 11px;
+            }
+
+            .draft-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 7px;
+                margin-top: 13px;
+            }
+
+            .empty {
+                padding: 45px 18px;
+                text-align: center;
+            }
+
+            .empty-icon {
+                display: grid;
+                place-items: center;
+                width: 58px;
+                height: 58px;
+                margin: 0 auto 16px;
+                border-radius: 18px;
+                background: var(--primary-soft);
+                color: var(--primary);
+                font-size: 27px;
+            }
+
+            .empty strong {
+                display: block;
+                font-size: 14px;
+            }
+
+            .empty p {
+                margin: 9px 0 0;
+                font-size: 12px;
+                color: var(--muted);
+                line-height: 1.7;
+            }
+
+            .info-card {
+                padding: 20px;
+                background: #eaf3ed;
+                border: 1px solid #d5e8db;
+                border-radius: 18px;
+            }
+
+            .info-card strong {
+                font-size: 13px;
+                color: var(--primary);
+            }
+
+            .info-card p {
+                margin: 8px 0 0;
+                color: #536c60;
+                font-size: 12px;
+                line-height: 1.8;
+            }
+
+            .notice {
+                margin-top: 15px;
+                font-size: 12px;
+                line-height: 1.6;
+                color: var(--primary);
+                font-weight: 600;
+            }
+
+            .notice:empty {
+                display: none;
+            }
+
+            .notice.error {
+                color: var(--danger);
+            }
+
+            .page-footer {
+                padding: 35px 0;
+                font-size: 11px;
+                color: var(--muted);
+                text-align: center;
+                line-height: 1.8;
+            }
+
+            .mobile-nav {
+                display: none;
+            }
+
+            @media (max-width: 860px) {
+                .workspace {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+
+                .side-column {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+                }
+
+                .hero-deco {
+                    display: none;
+                }
+            }
+
+            @media (max-width: 600px) {
+                .app {
+                    padding: 18px 15px calc(115px + env(safe-area-inset-bottom));
+                }
+
+                .topbar {
+                    padding-bottom: 18px;
+                }
+
+                .brand-name {
+                    font-size: 17px;
+                }
+
+                .brand-icon {
+                    width: 39px;
+                    height: 39px;
+                    border-radius: 12px;
+                }
+
+                .desktop-return {
+                    display: none;
+                }
+
+                .connection {
+                    padding: 8px 10px;
+                    font-size: 11px;
+                }
+
+                .hero {
+                    margin: 31px 0 23px;
+                }
+
+                h1 {
+                    font-size: clamp(29px, 8vw, 38px);
+                    letter-spacing: -1.4px;
+                }
+
+                .hero p {
+                    font-size: 13px;
+                }
+
+                .workspace {
+                    gap: 16px;
+                }
+
+                .card {
+                    border-radius: 18px;
+                }
+
+                .card-head {
+                    padding: 18px;
+                }
+
+                .editor {
+                    padding: 20px 18px;
+                }
+
+                .content-input {
+                    min-height: 250px;
+                }
+
+                .editor-footer {
+                    padding: 15px 18px;
+                }
+
+                .editor-actions {
+                    width: 100%;
+                }
+
+                .editor-actions .btn {
+                    flex: 1;
+                }
+
+                .side-column {
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .page-footer {
+                    padding-bottom: 0;
+                }
+
+                .mobile-nav {
+                    position: fixed;
+                    z-index: 100;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    padding: 9px 12px calc(9px + env(safe-area-inset-bottom));
+                    border-top: 1px solid var(--border);
+                    background: rgba(255, 255, 255, 0.97);
+                    box-shadow: 0 -10px 30px rgba(23, 44, 43, 0.05);
+                }
+
+                .nav-item {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 5px;
+                    min-height: 52px;
+                    border: 0;
+                    border-radius: 12px;
+                    background: transparent;
+                    color: var(--muted);
+                    font-size: 11px;
+                    font-weight: 650;
+                }
+
+                .nav-item.active {
+                    background: var(--primary-soft);
+                    color: var(--primary);
+                }
+
+                .nav-item svg {
+                    width: 21px;
+                    height: 21px;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                    scroll-behavior: auto !important;
+                    transition-duration: 0.01ms !important;
+                }
+            }
+        </style>
+    </head>
+
+    <body>
+        <main class="app">
+            <header class="topbar">
+                <a href="/" class="brand" aria-label="SelfNote Beranda">
+                    <div class="brand-icon" aria-hidden="true">✎</div>
+                    <div>
+                        <span class="brand-name"
+                            >selfnote<span style="color: #146b64">.</span></span
+                        >
+                        <span class="brand-sub">Your personal workspace</span>
+                    </div>
+                </a>
+
+                <div class="top-actions">
+                    <span class="connection" id="connection">
+                        <span class="dot"></span>
+                        <span id="connectionText">Memeriksa...</span>
+                    </span>
+                    <a href="/" class="btn btn-outline desktop-return"
+                        >↗ Beranda</a
+                    >
+                </div>
+            </header>
+
+            <section class="hero">
+                <div>
+                    <div class="eyebrow">✦ &nbsp; Quick Capture</div>
+                    <h1>Ide bagus tidak perlu menunggu koneksi.</h1>
+                    <p>
+                        Tangkap ide dan pemikiran kapan saja. Draft tersimpan di
+                        browser perangkat ini, lalu bisa kamu lanjutkan di
+                        editor SelfNote saat terhubung kembali.
+                    </p>
+                </div>
+                <div class="hero-deco" aria-hidden="true">✎</div>
+            </section>
+
+            <section class="workspace" aria-label="Quick Capture Workspace">
+                <div class="card editor-card" id="capture">
+                    <div class="card-head">
+                        <div>
+                            <h2 class="card-title">Tulis sesuatu.</h2>
+                            <p class="card-subtitle">
+                                Ruang kecil untuk ide besar.
+                            </p>
+                        </div>
+                        <span class="mini-badge">✦ Draft lokal</span>
+                    </div>
+
+                    <form id="quickCapture">
+                        <div class="editor">
+                            <label class="field-label" for="title">
+                                JUDUL CATATAN
+                            </label>
+                            <input
+                                class="title-input"
+                                id="title"
+                                type="text"
+                                maxlength="255"
+                                required
+                                autocomplete="off"
+                                placeholder="Berikan ide ini judul..."
+                            />
+
+                            <hr class="editor-divider" />
+
+                            <label class="field-label" for="content">
+                                CATATANMU
+                            </label>
+                            <textarea
+                                class="content-input"
+                                id="content"
+                                required
+                                placeholder="Apa yang sedang kamu pikirkan? Mulai menulis di sini..."
+                            ></textarea>
+
+                            <div
+                                id="message"
+                                class="notice"
+                                role="status"
+                                aria-live="polite"
+                            ></div>
+                        </div>
+
+                        <div class="editor-footer">
+                            <div class="editor-meta">
+                                <span id="wordCount">0 kata</span>
+                                <span id="characterCount">0 karakter</span>
+                            </div>
+
+                            <div class="editor-actions">
+                                <button
+                                    type="button"
+                                    id="cancelEdit"
+                                    class="btn btn-outline"
+                                    hidden
+                                >
+                                    Batal edit
+                                </button>
+                                <button
+                                    type="submit"
+                                    id="saveButton"
+                                    class="btn btn-primary"
+                                >
+                                    ✦ Simpan di perangkat
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                <aside class="side-column">
+                    <section class="card drafts-card" id="draft-section">
+                        <div class="card-head">
+                            <div>
+                                <h2 class="card-title">Draft tersimpan</h2>
+                                <p class="card-subtitle">
+                                    Ide yang belum masuk ke database.
+                                </p>
+                            </div>
+                            <span class="mini-badge" id="count">0 draft</span>
+                        </div>
+
+                        <div class="drafts-list" id="drafts"></div>
+
+                        <div style="padding: 0 16px 16px">
+                            <button
+                                type="button"
+                                class="btn btn-outline"
+                                id="exportDrafts"
+                                style="width: 100%"
+                            >
+                                ↓ Export backup JSON
+                            </button>
+                        </div>
+                    </section>
+
+                    <section class="info-card">
+                        <strong>◇ Tentang penyimpanan offline</strong>
+                        <p>
+                            Draft disimpan hanya di browser ini, bukan di
+                            server. Untuk menyimpannya permanen ke database,
+                            buka draft di editor SelfNote ketika online kemudian
+                            tekan Simpan.
+                        </p>
+                        <p>
+                            Penyimpanan browser bisa terhapus. Gunakan Export
+                            Backup untuk menyimpan salinan draft.
+                        </p>
+                        <a
+                            href="/"
+                            class="btn btn-soft"
+                            style="margin-top: 15px"
+                        >
+                            ↗ Coba buka SelfNote
+                        </a>
+                    </section>
+                </aside>
+            </section>
+
+            <footer class="page-footer">
+                SelfNote · A quieter space for your thoughts.
+                <div>Made for ideas, even when the world goes offline.</div>
+            </footer>
+        </main>
+
+        <nav class="mobile-nav" aria-label="Navigasi mobile">
+            <a href="/" class="nav-item">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z" />
+                    <path d="M9 21v-8h6v8" />
+                </svg>
+                Beranda
+            </a>
+
+            <a href="#capture" class="nav-item active" aria-current="page">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <path d="M12 3v18M3 12h18" />
+                    <path d="M5 5h14v14H5z" opacity=".25" />
+                </svg>
+                Capture
+            </a>
+
+            <a href="#draft-section" class="nav-item">
+                <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    aria-hidden="true"
+                >
+                    <rect x="4" y="3" width="16" height="18" rx="2" />
+                    <path d="M8 8h8M8 12h8M8 16h5" />
+                </svg>
+                Draft
+            </a>
+        </nav>
+
+        <script>
+            (() => {
+                "use strict";
+
+                const KEY = "selfnote:offline-drafts:v1";
+
+                const $ = (id) => document.getElementById(id);
+
+                const form = $("quickCapture");
+                const titleInput = $("title");
+                const contentInput = $("content");
+                const list = $("drafts");
+                const count = $("count");
+                const message = $("message");
+                const saveButton = $("saveButton");
+                const cancelEditButton = $("cancelEdit");
+                const exportButton = $("exportDrafts");
+
+                let editingId = null;
+
+                function read() {
+                    try {
+                        const data = JSON.parse(
+                            localStorage.getItem(KEY) || "[]",
+                        );
+                        return Array.isArray(data) ? data : [];
+                    } catch {
+                        return [];
+                    }
+                }
+
+                function write(drafts) {
+                    localStorage.setItem(KEY, JSON.stringify(drafts));
+                }
+
+                function notify(text, error = false) {
+                    message.textContent = text;
+                    message.classList.toggle("error", error);
+                }
+
+                function updateConnection() {
+                    const online = navigator.onLine;
+                    $("connection").classList.toggle("online", online);
+                    $("connectionText").textContent = online
+                        ? "Terhubung"
+                        : "Offline";
+                }
+
+                function updateCount() {
+                    const content = contentInput.value;
+                    const words = content.trim()
+                        ? content.trim().split(/\s+/).length
+                        : 0;
+
+                    $("wordCount").textContent = `${words} kata`;
+                    $("characterCount").textContent =
+                        `${content.length} karakter`;
+                }
+
+                function resetEditor() {
+                    editingId = null;
+                    form.reset();
+                    saveButton.textContent = "✦ Simpan di perangkat";
+                    cancelEditButton.hidden = true;
+                    updateCount();
+                }
+
+                function makeButton(label, className, callback) {
+                    const button = document.createElement("button");
+                    button.type = "button";
+                    button.className = `btn btn-small ${className}`;
+                    button.textContent = label;
+                    button.addEventListener("click", callback);
+                    return button;
+                }
+
+                function render() {
+                    const drafts = read();
+
+                    count.textContent = `${drafts.length} draft`;
+                    list.replaceChildren();
+                    exportButton.disabled = drafts.length === 0;
+
+                    if (!drafts.length) {
+                        const empty = document.createElement("div");
+                        empty.className = "empty";
+
+                        const icon = document.createElement("div");
+                        icon.className = "empty-icon";
+                        icon.textContent = "✎";
+
+                        const heading = document.createElement("strong");
+                        heading.textContent = "Belum ada draft";
+
+                        const description = document.createElement("p");
+                        description.textContent =
+                            "Mulai tulis sesuatu. Semua ide yang kamu simpan akan muncul di sini.";
+
+                        empty.append(icon, heading, description);
+                        list.append(empty);
+                        return;
+                    }
+
+                    for (const draft of drafts) {
+                        const item = document.createElement("article");
+                        item.className = "draft-item";
+
+                        const title = document.createElement("h3");
+                        title.className = "draft-name";
+                        title.textContent = draft.title || "Tanpa judul";
+
+                        const preview = document.createElement("p");
+                        preview.className = "draft-preview";
+                        preview.textContent = draft.content || "";
+
+                        const date = document.createElement("div");
+                        date.className = "draft-date";
+                        date.textContent = new Date(
+                            draft.at || Date.now(),
+                        ).toLocaleString("id-ID", {
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                        });
+
+                        const actions = document.createElement("div");
+                        actions.className = "draft-actions";
+
+                        const edit = makeButton("Edit", "btn-outline", () => {
+                            editingId = draft.id;
+                            titleInput.value = draft.title || "";
+                            contentInput.value = draft.content || "";
+                            saveButton.textContent = "Simpan perubahan";
+                            cancelEditButton.hidden = false;
+                            updateCount();
+                            notify("Sedang mengedit draft lokal.");
+                            $("capture").scrollIntoView({
+                                behavior: "smooth",
+                            });
+                            titleInput.focus();
+                        });
+
+                        const open = document.createElement("a");
+                        open.className = "btn btn-small btn-soft";
+                        open.textContent = "Buka di editor ↗";
+                        open.href =
+                            "/content/create?offline_draft=" +
+                            encodeURIComponent(draft.id);
+
+                        const remove = makeButton("Hapus", "btn-danger", () => {
+                            const original = read();
+
+                            try {
+                                write(
+                                    original.filter(
+                                        (item) => item.id !== draft.id,
+                                    ),
+                                );
+
+                                if (editingId === draft.id) {
+                                    resetEditor();
+                                }
+
+                                notify("Draft dihapus dari perangkat.");
+                                render();
+                            } catch {
+                                notify(
+                                    "Draft gagal dihapus dari penyimpanan.",
+                                    true,
+                                );
+                            }
+                        });
+
+                        actions.append(edit, open, remove);
+                        item.append(title, preview, date, actions);
+                        list.append(item);
+                    }
+                }
+
+                form.addEventListener("submit", (event) => {
+                    event.preventDefault();
+
+                    const title = titleInput.value.trim();
+                    const content = contentInput.value.trim();
+
+                    if (!title || !content) {
+                        notify("Judul dan isi catatan wajib diisi.", true);
+                        return;
+                    }
+
+                    try {
+                        const drafts = read();
+
+                        if (editingId) {
+                            const index = drafts.findIndex(
+                                (draft) => draft.id === editingId,
+                            );
+
+                            if (index === -1) {
+                                notify(
+                                    "Draft tidak ditemukan. Coba simpan ulang.",
+                                    true,
+                                );
+                                return;
+                            }
+
+                            drafts[index] = {
+                                ...drafts[index],
+                                title,
+                                content,
+                                at: Date.now(),
+                            };
+                        } else {
+                            drafts.unshift({
+                                id: crypto.randomUUID
+                                    ? crypto.randomUUID()
+                                    : String(Date.now()) +
+                                      "-" +
+                                      Math.random().toString(36).slice(2),
+                                title,
+                                content,
+                                at: Date.now(),
+                            });
+                        }
+
+                        write(drafts);
+                        resetEditor();
+                        render();
+
+                        notify("Draft berhasil disimpan di perangkat ini.");
+                    } catch {
+                        notify(
+                            "Gagal menyimpan. Periksa kapasitas penyimpanan browser.",
+                            true,
+                        );
+                    }
+                });
+
+                cancelEditButton.addEventListener("click", () => {
+                    resetEditor();
+                    notify("Mode edit dibatalkan.");
+                });
+
+                exportButton.addEventListener("click", () => {
+                    const drafts = read();
+
+                    if (!drafts.length) return;
+
+                    const blob = new Blob([JSON.stringify(drafts, null, 2)], {
+                        type: "application/json;charset=utf-8",
+                    });
+
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement("a");
+                    link.href = url;
+                    link.download =
+                        "selfnote-offline-backup-" +
+                        new Date().toISOString().slice(0, 10) +
+                        ".json";
+
+                    document.body.append(link);
+                    link.click();
+                    link.remove();
+
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
+                    notify("Backup draft berhasil dibuat.");
+                });
+
+                contentInput.addEventListener("input", updateCount);
+
+                window.addEventListener("online", updateConnection);
+                window.addEventListener("offline", updateConnection);
+
+                updateConnection();
+                updateCount();
+                render();
+            })();
+        </script>
+    </body>
+</html>
